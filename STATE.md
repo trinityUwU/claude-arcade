@@ -28,9 +28,14 @@ Projet neuf. Phase 1 (moteur de scan + CLI) en cours. Objectif : reproduire en l
 - Bundling Bun (bunfig.toml + bun-plugin-tailwind). Validé Playwright : rendu conforme, zéro erreur console/page.
 - Lancement : `./start.sh` → http://localhost:4317
 
+## VISION VALIDÉE (2026-06-12) — docs/VISION.md
+Claude Arcade évolue en système de Consolidation & Brain : 4 couches (résumés par session → consolidation → digest BRAIN.md PUSH via SessionStart → hub Arcade), cron zéro-perte (systemd Persistent=true, rattrapage au boot, incrémental). Insight central : PUSH (digest injecté natif) au-dessus de la mémoire sémantique PULL. But : courbe d'apprentissage continue, qualité d'exécution croissante.
+
 ## Prochaines étapes
-1. Phase 3 : hook SessionEnd + loop/review (claude -p) + onglet Learnings + merge-draft (propose-et-valide)
-2. Share cards canvas client-side · bouton Rescan UI · cache incrémental scanner
+1. Couche 1 (résumés par session incrémentaux) + ossature systemd zéro-perte — fondation de tout
+2. Couche 2 consolidation · Couche 3 digest+hook · Couche 4 onglets Arcade
+3. Temps réel : cache incrémental scanner (rescan quasi gratuit)
+4. Vue « skills les plus utilisés »
 
 ## Points en suspens
 - Recouper avec le MCP existant `claude-usage-stats` (option, pas bloquant).

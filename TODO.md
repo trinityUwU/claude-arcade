@@ -1,8 +1,16 @@
 # TODO — claude-arcade
 *Dernière mise à jour : 2026-06-12*
 
+## Vision validée — voir docs/VISION.md (Consolidation & Brain)
+Système de consolidation 4 couches + digest PUSH (BRAIN.md injecté via SessionStart) + cron zéro-perte (systemd Persistent). But : courbe d'apprentissage continue.
+- [ ] Couche 1 — résumé par session (incrémental) + ossature systemd zéro-perte
+- [ ] Couche 2 — consolidation (liens entre discussions, insights, erreurs récurrentes)
+- [ ] Couche 3 — digest BRAIN.md + hook SessionStart (PUSH natif)
+- [ ] Couche 4 — onglets Arcade : Sessions / Insights / Liens / Brain
+- [ ] Garde-fous : anti-récursion (sentinelle env), 1×/jour puis toutes les 15 sessions
+
 ## En cours
-- [ ] Phase 3 — hook SessionEnd + loop/review (claude -p) + onglet Learnings + merge-draft
+- [ ] Phase 3 — hook SessionEnd + loop/review (claude -p) + onglet Learnings + merge-draft (sous-ensemble de la vision ci-dessus)
 
 ## À faire (priorité)
 - [ ] Cache incrémental scanner (fingerprint mtime+size) — rend le rescan temps réel quasi gratuit (actuel : 2,5s/648 sessions, throttlé à 8s)
