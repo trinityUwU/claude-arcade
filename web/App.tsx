@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { AchievementResult, ScanResult } from "../src/types.ts";
-import { ScoreHeader } from "./components/ScoreHeader.tsx";
+import { Sidebar } from "./components/Sidebar.tsx";
+import { Topbar } from "./components/Topbar.tsx";
 import { BadgeCard } from "./components/BadgeCard.tsx";
 
 const STATE_ORDER: Record<AchievementResult["state"], number> = { unlocked: 0, discovered: 1, secret: 2 };
@@ -14,55 +15,52 @@ function sortAchievements(list: AchievementResult[]): AchievementResult[] {
   });
 }
 
-interface NavProps { cats: string[]; active: string; onPick: (c: string) => void }
-
-function CategoryNav({ cats, active, onPick }: NavProps): React.JSX.Element {
-  return (
-    <nav className="mb-6 flex flex-wrap gap-2">
-      {["Tous", ...cats].map((c) => (
-        <button key={c} onClick={() => onPick(c)}
-          className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
-            active === c ? "border-fuchsia-300/40 bg-fuchsia-300/10 text-fuchsia-100"
-              : "border-white/10 bg-white/[0.02] text-white/50 hover:text-white/80"}`}>
-          {c}
-        </button>
-      ))}
-    </nav>
-  );
-}
-
 export function App(): React.JSX.Element {
   const [data, setData] = useState<ScanResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cat, setCat] = useState("Tous");
+  const [scanning, setScanning] = useState(false);
 
-  useEffect(() => {
-    fetch("/api/achievements")
-      .then((r) => r.json())
-      .then((d: ScanResult) => setData(d))
-      .catch((e: unknown) => setError(String(e)));
+  const load = useCallback(async (url: string, method = "GET") => {
+    try {
+      const r = await fetch(url, { method });
+      setData((await r.json()) as ScanResult);
+    } catch (e: unknown) {
+      setError(String(e));
+    }
   }, []);
 
-  const cats = useMemo(() => (data ? Object.keys(data.score.byCategory) : []), [data]);
+  useEffect(() => { void load("/api/achievements"); }, [load]);
+
+  const rescan = useCallback(async () => {
+    setScanning(true);
+    await load("/api/rescan", "POST");
+    setScanning(false);
+  }, [load]);
+
   const shown = useMemo(() => {
     if (!data) return [];
-    const filtered = cat === "Tous" ? data.achievements : data.achievements.filter((a) => a.category === cat);
-    return sortAchievements(filtered);
+    const f = cat === "Tous" ? data.achievements : data.achievements.filter((a) => a.category === cat);
+    return sortAchievements(f);
   }, [data, cat]);
 
   if (error) return <Centered>Erreur de chargement : {error}</Centered>;
   if (!data) return <Centered>Scan en cours…</Centered>;
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
-      <ScoreHeader data={data} />
-      <CategoryNav cats={cats} active={cat} onPick={setCat} />
-      <motion.div layout className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <AnimatePresence mode="popLayout">
-          {shown.map((a, i) => <BadgeCard key={a.id} a={a} index={i} />)}
-        </AnimatePresence>
-      </motion.div>
-    </main>
+    <div className="flex h-screen overflow-hidden">
+      <Sidebar data={data} active={cat} onPick={setCat} />
+      <main className="flex flex-1 flex-col overflow-hidden">
+        <Topbar data={data} onRescan={rescan} scanning={scanning} />
+        <div className="flex-1 overflow-y-auto px-8 py-6">
+          <motion.div layout className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <AnimatePresence mode="popLayout">
+              {shown.map((a, i) => <BadgeCard key={a.id} a={a} index={i} />)}
+            </AnimatePresence>
+          </motion.div>
+        </div>
+      </main>
+    </div>
   );
 }
 

@@ -16,16 +16,3 @@ export const TIER_GLOW: Record<TierName, string> = {
   Diamond: "tier-glow-diamond",
   Olympian: "tier-glow-olympian",
 };
-
-const ICONS: Record<string, string> = {
-  flame: "🔥", avalanche: "🏔️", nodes: "🕸️", branch: "🌿", terminal: "⌨️",
-  warning: "⚠️", scroll: "📜", lock: "🔒", plug: "🔌", pencil: "✏️",
-  blueprint: "📐", melting_clock: "🫠", pixel: "🎨", hammer_scroll: "🛠️",
-  crystal: "🔮", map: "🗺️", antenna: "📡", compass: "🧭", robot: "🤖",
-  owl: "🦉", server: "🖥️", prism: "🔱", marathon: "🏃", calendar: "📅",
-  moon: "🌙", loop: "♾️", anvil: "⚒️", wheat: "🌾",
-};
-
-export function iconFor(name: string): string {
-  return ICONS[name] ?? "🏅";
-}
