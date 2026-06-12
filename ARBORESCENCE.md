@@ -31,6 +31,7 @@ claude-arcade/
 │   │   ├── text-normalize.ts (C2) Normalisation + clé de regroupement (récurrence)
 │   │   ├── insights.ts       (C2) Bilans projet, erreurs/process récurrents, notions
 │   │   ├── graph.ts          (C2) Graphe écosystème Obsidian : nœuds + arêtes + santé
+│   │   ├── transcript-view.ts Transcript nettoyé pour le panneau de détail (anti-bruit harness)
 │   │   ├── cli.ts            `bun run consolidate`
 │   │   └── empty-mcp.json    Config MCP vide (isolation : aucun serveur chargé)
 │   ├── engine/
@@ -51,7 +52,8 @@ claude-arcade/
 │   ├── lib/
 │   │   ├── tiers.ts          Couleurs de tier + halos
 │   │   └── icons.tsx         Mapping noms/catégories → icônes Lucide (zéro emoji)
-│   └── components/           Sidebar.tsx (switch Arcade/Cerveau) · Topbar.tsx · BadgeCard.tsx · BrainGraph.tsx (graphe Obsidian 2D)
+│   └── components/           Sidebar.tsx (switch Arcade/Cerveau) · Topbar.tsx · BadgeCard.tsx
+│                             · BrainGraph.tsx (graphe Obsidian 2D, clic→détail) · NodeDetail.tsx (résumé + transcript)
 ├── systemd/                  Ossature cron zéro-perte (Persistent=true)
 │   ├── claude-arcade-consolidate.service  oneshot : bun run consolidate
 │   ├── claude-arcade-consolidate.timer    OnCalendar=daily + Persistent (rattrapage réveil)

@@ -40,6 +40,16 @@ export async function saveIndex(idx: ConsolidationIndex): Promise<void> {
   }
 }
 
+export async function loadSummary(sessionId: string): Promise<SessionSummary | null> {
+  try {
+    const f = Bun.file(summaryPath(sessionId));
+    if (await f.exists()) return (await f.json()) as SessionSummary;
+  } catch (err) {
+    logger.error({ err, sessionId }, "loadSummary failed");
+  }
+  return null;
+}
+
 export async function saveSummary(summary: SessionSummary): Promise<void> {
   try {
     await mkdir(sessionsDir(), { recursive: true });

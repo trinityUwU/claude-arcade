@@ -2,7 +2,9 @@
 import index from "../../web/index.html";
 import { runScan } from "../scan.ts";
 import { loadState } from "../engine/state.ts";
-import { loadInsights, loadGraph, loadAllSummaries } from "../consolidate/store.ts";
+import { loadInsights, loadGraph, loadAllSummaries, loadSummary } from "../consolidate/store.ts";
+import { readSession } from "../scanner/session-reader.ts";
+import { cleanTranscript } from "../consolidate/transcript-view.ts";
 import { watchSessions } from "./watch.ts";
 import { logger } from "../logger.ts";
 import type { ScanResult } from "../types.ts";
@@ -21,6 +23,14 @@ async function getScan(force = false): Promise<ScanResult> {
     scanning = runScan().then((r) => { cache = r; return r; }).finally(() => { scanning = null; });
   }
   return scanning;
+}
+
+/** Lit le transcript d'une session (via le chemin stocké dans son résumé) et le nettoie. */
+async function transcriptResponse(id: string): Promise<Response> {
+  const summary = await loadSummary(id);
+  if (!summary) return new Response("not found", { status: 404 });
+  const view = cleanTranscript(await readSession(summary.file));
+  return Response.json(view);
 }
 
 function broadcast(result: ScanResult): void {
@@ -63,6 +73,11 @@ const server = Bun.serve({
     "/api/insights": async () => Response.json((await loadInsights()) ?? { sessionCount: 0, projects: [] }),
     "/api/graph": async () => Response.json((await loadGraph()) ?? { nodes: [], edges: [], generatedAt: 0 }),
     "/api/sessions": async () => Response.json(await loadAllSummaries()),
+    "/api/session/:id": async (req) => {
+      const s = await loadSummary(req.params.id);
+      return s ? Response.json(s) : new Response("not found", { status: 404 });
+    },
+    "/api/transcript/:id": async (req) => transcriptResponse(req.params.id),
   },
   error(err) {
     logger.error({ err }, "erreur serveur");

@@ -27,8 +27,9 @@ Réseau 2D plat façon Obsidian, reliant sessions/projets/notions/erreurs/proces
 - [x] Stack : `react-force-graph-2d` (canvas, force-directed, look Obsidian). Bundlé local, souverain. Pas de Three.js.
 - [x] Modèle de données : nœuds {session, projet, notion, erreur-récurrente, process-gagnant} + arêtes (Couche 2). Cf. `graph.ts`.
 - [x] Sémantique couleur : vert=fort · rouge=faible/à retravailler · jaune=à surveiller · neutre. Taille = fréquence (`BrainGraph.tsx`).
-- [x] Interactions : zoom/pan, hover (tooltip détails), labels au zoom, légende. Switch Arcade/Cerveau dans la sidebar.
-- [ ] À enrichir : drill-down clic (ouvrir session/projet), filtres par projet/type/qualité, arêtes notion↔notion (co-occurrence)
+- [x] Interactions : zoom/pan, hover tooltip, labels permanents + glyphes de type, panneau de types, légende santé.
+- [x] **Clic → panneau de détail** : résumé (qualité, wins, erreurs, décisions, notions) + **transcript nettoyé** (caveats/system-reminder retirés). Endpoints `/api/session/:id` `/api/transcript/:id`.
+- [ ] Reste à enrichir : filtres (projet/type/qualité), arêtes notion↔notion (co-occurrence), recherche, focus/highlight des voisins au clic
 - [ ] Se densifie avec le backfill complet (actuellement 19 sessions → 34 nœuds)
 
 ## ════ LISTE 2 — Stabilité & bug « Live » ════

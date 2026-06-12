@@ -36,6 +36,7 @@ Claude Arcade évolue en système de Consolidation & Brain : 4 couches (résumé
 - **Couche 1 LIVRÉE & VALIDÉE** : transcript→digest borné → `claude -p` isolé (sonnet, abonnement cloud) → JSON structuré → store idempotent + quota backfill + ossature systemd `Persistent=true`. Testé sur sessions réelles (résumé qualité 85, idempotence confirmée, sessions triviales scorées 0).
 - **CORRECTION Chris** : AUCUN modèle local pour ce projet. « zéro API externe » = pas de tiers, PAS « préférer local ». Tout passe par l'abonnement Claude Code (sonnet/opus cloud). Cf. @self ai_error.
 - **À activer par Chris** (dépense tokens) : `bash systemd/install.sh` → enable timer.
+- **Graphe Cerveau interactif** : labels permanents + glyphes de type + panneau de types (lisibilité), clic nœud → panneau détail (résumé + transcript nettoyé). Endpoints `/api/session/:id` `/api/transcript/:id`. Reste : filtres, co-occurrence notions, recherche.
 
 ## Prochaines étapes
 1. Chris : activer le backfill systemd (647 sessions, quota 25/j) quand il valide le coût
