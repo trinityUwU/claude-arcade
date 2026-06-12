@@ -26,8 +26,11 @@ claude-arcade/
 │   │   ├── summary-prompt.ts Prompt TIDD-EC du `claude -p` de résumé (JSON stable)
 │   │   ├── summarize.ts      Spawn `claude -p` isolé (zéro MCP, plan, sonnet cloud)
 │   │   ├── parse.ts          Extraction + validation robustes du JSON LLM (testé)
-│   │   ├── store.ts          Persistance résumés + index idempotent (zéro-perte)
-│   │   ├── run.ts            Orchestrateur : sélection + quota backfill + idempotence
+│   │   ├── store.ts          Persistance résumés/insights/graphe + index idempotent
+│   │   ├── run.ts            Orchestrateur : quota backfill + idempotence + rebuild Couche 2
+│   │   ├── text-normalize.ts (C2) Normalisation + clé de regroupement (récurrence)
+│   │   ├── insights.ts       (C2) Bilans projet, erreurs/process récurrents, notions
+│   │   ├── graph.ts          (C2) Graphe écosystème Obsidian : nœuds + arêtes + santé
 │   │   ├── cli.ts            `bun run consolidate`
 │   │   └── empty-mcp.json    Config MCP vide (isolation : aucun serveur chargé)
 │   ├── engine/

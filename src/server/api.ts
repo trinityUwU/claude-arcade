@@ -2,6 +2,7 @@
 import index from "../../web/index.html";
 import { runScan } from "../scan.ts";
 import { loadState } from "../engine/state.ts";
+import { loadInsights, loadGraph, loadAllSummaries } from "../consolidate/store.ts";
 import { watchSessions } from "./watch.ts";
 import { logger } from "../logger.ts";
 import type { ScanResult } from "../types.ts";
@@ -59,6 +60,9 @@ const server = Bun.serve({
     "/api/recent": async () => Response.json((await loadState()).recent),
     "/api/rescan": { POST: async () => Response.json(await getScan(true)) },
     "/api/stream": () => streamResponse(),
+    "/api/insights": async () => Response.json((await loadInsights()) ?? { sessionCount: 0, projects: [] }),
+    "/api/graph": async () => Response.json((await loadGraph()) ?? { nodes: [], edges: [], generatedAt: 0 }),
+    "/api/sessions": async () => Response.json(await loadAllSummaries()),
   },
   error(err) {
     logger.error({ err }, "erreur serveur");

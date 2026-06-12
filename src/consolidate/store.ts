@@ -3,7 +3,7 @@ import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { Glob } from "bun";
 import { stateDir } from "../engine/state.ts";
-import type { SessionSummary, ConsolidationIndex } from "./types.ts";
+import type { SessionSummary, ConsolidationIndex, Insights, GraphData } from "./types.ts";
 import { logger } from "../logger.ts";
 
 const INDEX_VERSION = 1;
@@ -57,6 +57,37 @@ export function isProcessed(idx: ConsolidationIndex, file: string, fp: string): 
 export function markProcessed(idx: ConsolidationIndex, file: string, fp: string): void {
   idx.processed[file] = { fingerprint: fp, at: Date.now() };
 }
+
+function insightsPath(): string {
+  return join(stateDir(), "insights.json");
+}
+function graphPath(): string {
+  return join(stateDir(), "graph.json");
+}
+
+async function writeJson(path: string, data: unknown, label: string): Promise<void> {
+  try {
+    await mkdir(stateDir(), { recursive: true });
+    await Bun.write(path, JSON.stringify(data, null, 2));
+  } catch (err) {
+    logger.error({ err }, `${label} failed`);
+  }
+}
+
+async function readJson<T>(path: string): Promise<T | null> {
+  try {
+    const f = Bun.file(path);
+    if (await f.exists()) return (await f.json()) as T;
+  } catch (err) {
+    logger.error({ err, path }, "readJson failed");
+  }
+  return null;
+}
+
+export const saveInsights = (i: Insights): Promise<void> => writeJson(insightsPath(), i, "saveInsights");
+export const saveGraph = (g: GraphData): Promise<void> => writeJson(graphPath(), g, "saveGraph");
+export const loadInsights = (): Promise<Insights | null> => readJson<Insights>(insightsPath());
+export const loadGraph = (): Promise<GraphData | null> => readJson<GraphData>(graphPath());
 
 /** Charge tous les résumés persistés (pour les couches 2-4). */
 export async function loadAllSummaries(): Promise<SessionSummary[]> {

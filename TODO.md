@@ -10,7 +10,11 @@ Système de consolidation 4 couches + digest PUSH (BRAIN.md injecté via Session
   - [x] Store + index idempotent zéro-perte/zéro-doublon (`store.ts`, last-consolidation.json) + quota backfill (`run.ts`)
   - [x] Unités systemd `Persistent=true` + install.sh (NON activé — go de Chris requis : dépense tokens)
   - [ ] **À activer par Chris** : `bash systemd/install.sh` puis enable timer (backfill 647 sessions, quota 25/j)
-- [ ] Couche 2 — consolidation (liens entre discussions, insights, erreurs récurrentes)
+- [x] **Couche 2 — consolidation (liens + insights + graphe)** (livré, validé sur 19 sessions réelles)
+  - [x] Normalisation texte + détection récurrence (`text-normalize.ts`) erreurs/process count≥2
+  - [x] Insights : bilans projet (avgQuality), erreurs récurrentes Claude/Chris, process gagnants, notions (`insights.ts`)
+  - [x] Graphe écosystème : nœuds (session/projet/notion/erreur/process) + arêtes + sémantique santé (`graph.ts`)
+  - [x] Rebuild auto dans l'orchestrateur + endpoints `/api/insights` `/api/graph` `/api/sessions`
 - [ ] Couche 3 — digest BRAIN.md + hook SessionStart (PUSH natif)
 - [ ] Couche 4 — onglets Arcade : Sessions / Insights / Liens / Brain
 - [x] Garde-fou anti-récursion (sentinelle `ARCADE_LOOP_ACTIVE=1` + no-session-persistence) · [ ] cadence 1×/j puis /15 sessions

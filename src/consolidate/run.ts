@@ -8,7 +8,10 @@ import { digestTranscript } from "./transcript-digest.ts";
 import { summarizeDigest, defaultModel } from "./summarize.ts";
 import {
   loadIndex, saveIndex, saveSummary, isProcessed, markProcessed,
+  loadAllSummaries, saveInsights, saveGraph,
 } from "./store.ts";
+import { buildInsights } from "./insights.ts";
+import { buildGraph } from "./graph.ts";
 import type { SessionSummary, ConsolidationIndex, ConsolidationRun } from "./types.ts";
 import { SUMMARY_SCHEMA_VERSION } from "./summary-prompt.ts";
 import { logger } from "../logger.ts";
@@ -53,6 +56,14 @@ async function summarizeOne(file: string, fp: string, model: string): Promise<Se
   };
 }
 
+/** Reconstruit insights + graphe depuis TOUS les résumés (déterministe, cheap). */
+export async function rebuildInsights(): Promise<void> {
+  const summaries = await loadAllSummaries();
+  const insights = buildInsights(summaries);
+  await saveInsights(insights);
+  await saveGraph(buildGraph(summaries, insights));
+}
+
 export async function runConsolidation(): Promise<ConsolidationRun> {
   const started = Date.now();
   const model = defaultModel();
@@ -71,6 +82,7 @@ export async function runConsolidation(): Promise<ConsolidationRun> {
   }
   idx.lastRun = Date.now();
   await saveIndex(idx);
+  await rebuildInsights();
   const run: ConsolidationRun = {
     scanned: files.length, pending: pending.length, summarized, failed, skipped,
     quota: quota(), ms: Date.now() - started,
