@@ -7,6 +7,7 @@
   "scripts": {
     "scan": "bun run src/cli.ts",
     "serve": "bun run src/server/api.ts",
+    "consolidate": "bun run src/consolidate/cli.ts",
     "test": "bun test",
     "typecheck": "bunx tsc --noEmit"
   },

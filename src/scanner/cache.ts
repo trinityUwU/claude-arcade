@@ -1,8 +1,9 @@
 // Cache incrémental du scan : ne re-parse que les transcripts modifiés (fingerprint mtime+size).
-import { mkdir, stat } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { SessionStats } from "../types.ts";
 import { stateDir } from "../engine/state.ts";
+import { fileFingerprint } from "./fingerprint.ts";
 import { readSession } from "./session-reader.ts";
 import { analyzeSession } from "./metrics.ts";
 import { logger } from "../logger.ts";
@@ -18,16 +19,6 @@ let loaded = false;
 
 function cachePath(): string {
   return join(stateDir(), "scan-cache.json");
-}
-
-/** Empreinte d'un fichier (mtime arrondi + taille). null si le fichier a disparu. */
-async function fingerprint(file: string): Promise<string | null> {
-  try {
-    const s = await stat(file);
-    return `${Math.round(s.mtimeMs)}:${s.size}`;
-  } catch {
-    return null;
-  }
 }
 
 async function loadDisk(): Promise<void> {
@@ -69,7 +60,7 @@ function evictDisappeared(present: Set<string>): void {
 /** Analyse incrémentale : réutilise les sessions inchangées, ne re-parse que le delta. */
 export async function scanIncremental(files: string[]): Promise<IncResult> {
   await loadDisk();
-  const fps = await Promise.all(files.map(async (f) => [f, await fingerprint(f)] as const));
+  const fps = await Promise.all(files.map(async (f) => [f, await fileFingerprint(f)] as const));
   evictDisappeared(new Set(files));
 
   const todo: Array<readonly [string, string]> = [];

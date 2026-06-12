@@ -31,11 +31,17 @@ Projet neuf. Phase 1 (moteur de scan + CLI) en cours. Objectif : reproduire en l
 ## VISION VALIDÉE (2026-06-12) — docs/VISION.md
 Claude Arcade évolue en système de Consolidation & Brain : 4 couches (résumés par session → consolidation → digest BRAIN.md PUSH via SessionStart → hub Arcade), cron zéro-perte (systemd Persistent=true, rattrapage au boot, incrémental). Insight central : PUSH (digest injecté natif) au-dessus de la mémoire sémantique PULL. But : courbe d'apprentissage continue, qualité d'exécution croissante.
 
+## Session 2026-06-12 (suite) — bug Live + Couche 1
+- **Bug Live RÉSOLU** : cache incrémental (`scanner/cache.ts`, fingerprint mtime+size) → rescan 3,24s→0,14s ; heartbeat SSE /15s ; UI debounce 5s. Validé Playwright (22s, 0 flicker).
+- **Couche 1 LIVRÉE & VALIDÉE** : transcript→digest borné → `claude -p` isolé (sonnet, abonnement cloud) → JSON structuré → store idempotent + quota backfill + ossature systemd `Persistent=true`. Testé sur sessions réelles (résumé qualité 85, idempotence confirmée, sessions triviales scorées 0).
+- **CORRECTION Chris** : AUCUN modèle local pour ce projet. « zéro API externe » = pas de tiers, PAS « préférer local ». Tout passe par l'abonnement Claude Code (sonnet/opus cloud). Cf. @self ai_error.
+- **À activer par Chris** (dépense tokens) : `bash systemd/install.sh` → enable timer.
+
 ## Prochaines étapes
-1. Couche 1 (résumés par session incrémentaux) + ossature systemd zéro-perte — fondation de tout
-2. Couche 2 consolidation · Couche 3 digest+hook · Couche 4 onglets Arcade
-3. Temps réel : cache incrémental scanner (rescan quasi gratuit)
-4. Vue « skills les plus utilisés »
+1. Chris : activer le backfill systemd (647 sessions, quota 25/j) quand il valide le coût
+2. Couche 2 consolidation (liens, insights, erreurs récurrentes) · Couche 3 digest BRAIN.md + hook SessionStart · Couche 4 onglets Arcade
+3. LISTE 1 — Graphe écosystème Obsidian 2D (dépend des liens Couche 2)
+4. LISTE 2 reste : vue « skills les plus utilisés », share cards
 
 ## Points en suspens
 - Recouper avec le MCP existant `claude-usage-stats` (option, pas bloquant).

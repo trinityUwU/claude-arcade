@@ -1,0 +1,17 @@
+[Unit]
+Description=Claude Arcade — consolidation des sessions (résumés via claude -p)
+Documentation=file:///mnt/projects/claude-arcade/docs/VISION.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/mnt/projects/claude-arcade
+# PATH explicite : les services systemd user n'héritent pas du .zshrc.
+# Volontairement SANS ANTHROPIC_BASE_URL → claude utilise l'abonnement cloud,
+# jamais le modèle local. Le modèle `sonnet` forwarde de toute façon vers Anthropic.
+Environment=PATH=/usr/local/bin:/home/trinity/.bun/bin:/home/trinity/.local/bin:/usr/bin:/bin
+Environment=ARCADE_BACKFILL_QUOTA=25
+ExecStart=/home/trinity/.bun/bin/bun run consolidate
+TimeoutStartSec=1800
+Nice=10

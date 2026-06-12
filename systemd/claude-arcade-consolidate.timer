@@ -1,0 +1,14 @@
+[Unit]
+Description=Claude Arcade — consolidation quotidienne (zéro-perte)
+Documentation=file:///mnt/projects/claude-arcade/docs/VISION.md
+
+[Timer]
+# 1×/jour pour démarrer (garde-fou). Passera à une cadence plus fine une fois éprouvé.
+OnCalendar=daily
+# Cœur du zéro-perte : si l'heure est passée pendant que le PC dormait,
+# systemd lance UN rattrapage au prochain réveil. Pas N exécutions, une seule.
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

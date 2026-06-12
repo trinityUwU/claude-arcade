@@ -3,11 +3,17 @@
 
 ## Vision validée — voir docs/VISION.md (Consolidation & Brain)
 Système de consolidation 4 couches + digest PUSH (BRAIN.md injecté via SessionStart) + cron zéro-perte (systemd Persistent). But : courbe d'apprentissage continue.
-- [ ] Couche 1 — résumé par session (incrémental) + ossature systemd zéro-perte
+- [x] **Couche 1 — résumé par session + ossature systemd zéro-perte** (livré, validé sur abonnement)
+  - [x] Réducteur transcript→digest compact borné (`transcript-digest.ts`, ~2,3k tok)
+  - [x] Prompt de résumé (TIDD-EC via /prompt-architect) → JSON stable (`summary-prompt.ts`)
+  - [x] Pipeline `claude -p` isolé (zéro MCP, no-session-persistence, plan, modèle `sonnet` cloud) + parseur robuste testé
+  - [x] Store + index idempotent zéro-perte/zéro-doublon (`store.ts`, last-consolidation.json) + quota backfill (`run.ts`)
+  - [x] Unités systemd `Persistent=true` + install.sh (NON activé — go de Chris requis : dépense tokens)
+  - [ ] **À activer par Chris** : `bash systemd/install.sh` puis enable timer (backfill 647 sessions, quota 25/j)
 - [ ] Couche 2 — consolidation (liens entre discussions, insights, erreurs récurrentes)
 - [ ] Couche 3 — digest BRAIN.md + hook SessionStart (PUSH natif)
 - [ ] Couche 4 — onglets Arcade : Sessions / Insights / Liens / Brain
-- [ ] Garde-fous : anti-récursion (sentinelle env), 1×/jour puis toutes les 15 sessions
+- [x] Garde-fou anti-récursion (sentinelle `ARCADE_LOOP_ACTIVE=1` + no-session-persistence) · [ ] cadence 1×/j puis /15 sessions
 
 ## En cours
 - [ ] Phase 3 — hook SessionEnd + loop/review (claude -p) + onglet Learnings + merge-draft (sous-ensemble de la vision ci-dessus)
