@@ -47,9 +47,22 @@ Contrainte dure : **budget token strict**. C'est la crème, pas un dump. Sinon o
 Nouveaux onglets, au-delà des achievements :
 - **Sessions** — résumés + score de qualité par session
 - **Insights** — process gagnants / erreurs récurrentes / dérives
-- **Liens** — graphe entre discussions, sujets, projets
+- **Liens / Graphe** — voir ci-dessous (pièce maîtresse)
 - **Brain** — le digest courant, lisible
 Montre où c'est excellent, où Chris s'est emballé, où Claude a raté, les regroupements par projet/productivité.
+
+#### Le Graphe écosystème (type Obsidian, 2D — pièce maîtresse)
+**Pas de 3D / Three.js.** Un graphe 2D plat, façon vue graphe d'Obsidian : un réseau de « neurones »
+omniprésent et interconnecté reliant TOUT — notions issues des analyses de conversations, types de
+projets, sessions, erreurs récurrentes, process gagnants, skills. Un écosystème complet relié dans
+tous les sens, pour comprendre d'un coup d'œil : où on avance, points forts / faibles, quoi
+retravailler, où il n'y a aucun problème, où faire attention.
+- **Stack reco (à valider)** : `react-force-graph-2d` (canvas, force-directed) ou `d3-force` + canvas. Local, souverain. Jamais Three.js ici.
+- **Nœuds** : session · projet · notion/sujet · erreur-récurrente · process-gagnant · skill.
+- **Arêtes** : liens détectés par la Couche 2 (consolidation) — co-occurrence, même projet, même erreur, sujets connexes.
+- **Sémantique couleur** : vert = sain/fort · rouge-orange = faible/à retravailler · jaune = à surveiller · neutre = sans problème. Taille de nœud = importance/fréquence.
+- **Interactions** : zoom/pan, hover détails, clic drill-down, filtres (projet / type / qualité), clusters.
+C'est le cœur de la compréhension : l'endroit où Chris voit l'état réel de sa pratique et de ses projets.
 
 ## Cron zéro-perte
 
