@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { AchievementResult, ScanResult } from "../src/types.ts";
-import { Sidebar } from "./components/Sidebar.tsx";
+import { Sidebar, type View } from "./components/Sidebar.tsx";
 import { Topbar } from "./components/Topbar.tsx";
 import { BadgeCard } from "./components/BadgeCard.tsx";
+import { BrainGraph } from "./components/BrainGraph.tsx";
 
 const STATE_ORDER: Record<AchievementResult["state"], number> = { unlocked: 0, discovered: 1, secret: 2 };
 
@@ -19,6 +20,7 @@ export function App(): React.JSX.Element {
   const [data, setData] = useState<ScanResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cat, setCat] = useState("Tous");
+  const [view, setView] = useState<View>("arcade");
   const [scanning, setScanning] = useState(false);
   const [live, setLive] = useState(false);
 
@@ -66,16 +68,20 @@ export function App(): React.JSX.Element {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar data={data} active={cat} onPick={setCat} />
+      <Sidebar data={data} active={cat} onPick={setCat} view={view} onView={setView} />
       <main className="flex flex-1 flex-col overflow-hidden">
         <Topbar data={data} onRescan={rescan} scanning={scanning} live={live} />
-        <div className="flex-1 overflow-y-auto px-8 py-6">
-          <motion.div layout className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            <AnimatePresence mode="popLayout">
-              {shown.map((a, i) => <BadgeCard key={a.id} a={a} index={i} />)}
-            </AnimatePresence>
-          </motion.div>
-        </div>
+        {view === "brain" ? (
+          <div className="flex-1 overflow-hidden"><BrainGraph /></div>
+        ) : (
+          <div className="flex-1 overflow-y-auto px-8 py-6">
+            <motion.div layout className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <AnimatePresence mode="popLayout">
+                {shown.map((a, i) => <BadgeCard key={a.id} a={a} index={i} />)}
+              </AnimatePresence>
+            </motion.div>
+          </div>
+        )}
       </main>
     </div>
   );

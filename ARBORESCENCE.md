@@ -51,7 +51,7 @@ claude-arcade/
 │   ├── lib/
 │   │   ├── tiers.ts          Couleurs de tier + halos
 │   │   └── icons.tsx         Mapping noms/catégories → icônes Lucide (zéro emoji)
-│   └── components/           Sidebar.tsx · Topbar.tsx (titre animé + Live) · BadgeCard.tsx
+│   └── components/           Sidebar.tsx (switch Arcade/Cerveau) · Topbar.tsx · BadgeCard.tsx · BrainGraph.tsx (graphe Obsidian 2D)
 ├── systemd/                  Ossature cron zéro-perte (Persistent=true)
 │   ├── claude-arcade-consolidate.service  oneshot : bun run consolidate
 │   ├── claude-arcade-consolidate.timer    OnCalendar=daily + Persistent (rattrapage réveil)
