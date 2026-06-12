@@ -23,9 +23,17 @@ claude-arcade/
 │   │   ├── evaluate.ts       Évalue un achievement → état + tier + progression
 │   │   ├── score.ts          Score global, rang, agrégats par catégorie
 │   │   └── state.ts          state.json local : unlocks + recent + détection nouveaux paliers
-│   ├── server/               (Phase 2) Bun.serve API
+│   ├── server/
+│   │   └── api.ts            Bun.serve port 4317 : sert le front + API (scan mémoïsé, /rescan)
 │   └── loop/                 (Phase 3) review.ts + merge-draft.ts
-├── web/                      (Phase 2) Front React/Tailwind/Framer Motion
+├── bunfig.toml               Plugin bun-plugin-tailwind pour le bundling CSS
+├── web/                      Front React/Tailwind v4/Framer Motion (dark, bundlé par Bun)
+│   ├── index.html            Entrypoint (import main.tsx + styles.css)
+│   ├── styles.css            Tailwind v4 + thème (couleurs de tier, halos)
+│   ├── main.tsx              Montage React
+│   ├── App.tsx               Fetch /api/achievements + filtre catégories + grille
+│   ├── lib/tiers.ts          Couleurs de tier, halos, icônes (emoji)
+│   └── components/           ScoreHeader.tsx · BadgeCard.tsx
 ├── hooks/                    (Phase 3) session-end.sh
 └── tests/
     └── metrics.test.ts       Tests unitaires scanner + engine (fixtures inline)

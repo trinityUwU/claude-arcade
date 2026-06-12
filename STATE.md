@@ -22,10 +22,15 @@ Projet neuf. Phase 1 (moteur de scan + CLI) en cours. Objectif : reproduire en l
 - Moteur porté depuis `/mnt/projects/hermes-agent/plugins/hermes-achievements/dashboard/plugin_api.py`.
 - Plan complet : `~/.claude/plans/mellow-squishing-crown.md`.
 
+## Phase 2 — COMPLÈTE (2026-06-12)
+- src/server/api.ts : Bun.serve port 4317, scan mémoïsé, routes /api/achievements /api/recent /api/rescan
+- web/ : dashboard React/Tailwind v4/Framer Motion, dark theme, badges tiered, filtre catégories
+- Bundling Bun (bunfig.toml + bun-plugin-tailwind). Validé Playwright : rendu conforme, zéro erreur console/page.
+- Lancement : `./start.sh` → http://localhost:4317
+
 ## Prochaines étapes
-1. Phase 2 : serveur Bun.serve (API) + front React/Tailwind/Framer Motion (badges arcade, tiers, score, share cards)
-2. Phase 3 : hook SessionEnd + loop/review (claude -p) + onglet Learnings + merge-draft
-3. Optim : cache incrémental scanner
+1. Phase 3 : hook SessionEnd + loop/review (claude -p) + onglet Learnings + merge-draft (propose-et-valide)
+2. Share cards canvas client-side · bouton Rescan UI · cache incrémental scanner
 
 ## Points en suspens
 - Recouper avec le MCP existant `claude-usage-stats` (option, pas bloquant).

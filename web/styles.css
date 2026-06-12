@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@theme {
+  --color-copper: #c87f3a;
+  --color-silver: #cbd5e1;
+  --color-gold: #ffd23f;
+  --color-diamond: #5ad6ff;
+  --color-olympian: #c79bff;
+  --font-display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(1200px 600px at 50% -10%, #1a1530 0%, #0b0b12 55%, #08080d 100%);
+  color: #e7e5f0;
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Halo de tier réutilisé par les cartes débloquées. */
+.tier-glow-gold { box-shadow: 0 0 0 1px rgba(255, 210, 63, 0.25), 0 8px 40px -12px rgba(255, 210, 63, 0.35); }
+.tier-glow-diamond { box-shadow: 0 0 0 1px rgba(90, 214, 255, 0.25), 0 8px 40px -12px rgba(90, 214, 255, 0.35); }
+.tier-glow-olympian { box-shadow: 0 0 0 1px rgba(199, 155, 255, 0.3), 0 8px 44px -10px rgba(199, 155, 255, 0.45); }
+.tier-glow-silver { box-shadow: 0 0 0 1px rgba(203, 213, 225, 0.2), 0 8px 36px -14px rgba(203, 213, 225, 0.25); }
+.tier-glow-copper { box-shadow: 0 0 0 1px rgba(200, 127, 58, 0.22), 0 8px 36px -14px rgba(200, 127, 58, 0.28); }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #2a2740; border-radius: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
