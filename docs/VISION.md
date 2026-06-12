@@ -83,3 +83,7 @@ Unités : `~/.config/systemd/user/claude-arcade-consolidate.{service,timer}`.
 - systemd `Persistent=true` pour le zéro-perte.
 - Consolidation 1×/jour au départ, garde-fous obligatoires.
 - Claude Arcade = hub central de visualisation et de documentation.
+- **Couche 1 — backfill HYBRIDE** : nouvelles sessions résumées en direct + historique (648 sessions) résumé en tâche de fond, étalé via le cron (quota par run) pour lisser le coût tokens. Le digest s'enrichit progressivement.
+
+## Note d'implémentation — Couche 1 (à concevoir avant de coder)
+Le prompt de résumé `claude -p` est le cœur de la qualité — il doit être conçu proprement (via /prompt-architect), pas écrit à la volée. Il produit un JSON structuré stable : `{ project, topic, wins[], errors_claude[], errors_chris[], decisions[], quality_score, links_hint[] }`. Idempotence via `last-consolidation.json` + fingerprint de session. Quota de backfill par run (ex. 20 sessions) pour borner le coût.
