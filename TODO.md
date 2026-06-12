@@ -25,10 +25,10 @@ quoi retravailler ? où aucun problème ? où faire attention ?
 - [ ] C'est la version riche de l'onglet « Liens » de la Couche 4 (cf. docs/VISION.md) — le hub central de compréhension.
 
 ## ════ LISTE 2 — Stabilité & bug « Live » ════
-- [ ] **BUG : badge Live clignote** (Hors ligne ↔ Live toutes les quelques sec, 10-30s+). Cause probable : le rescan bloque l'event loop (parse JSON sync de 648 transcripts ~2,5s, relancé toutes les 8s) → le flux SSE est starvé → onerror navigateur. Triple fix :
-  - [ ] Cache incrémental scanner (fingerprint mtime+size) → rescan quasi instantané (ne re-parse que les fichiers changés). Fix racine.
-  - [ ] Heartbeat SSE : envoyer `: ping\n\n` toutes les ~15s pour garder la connexion vivante.
-  - [ ] UI tolérante : ne pas passer « Hors ligne » sur une coupure transitoire (EventSource reconnecte seul) — debounce ~5s avant d'afficher hors ligne.
+- [x] **BUG : badge Live clignote** — RÉSOLU. Cause confirmée : rescan bloquant (parse sync de 648 transcripts ~2,5s, relancé /8s) → flux SSE starvé → onerror navigateur. Triple fix livré + validé Playwright (22s, 44/44 « Live », 0 transition, 0 page-error) :
+  - [x] Cache incrémental scanner (`src/scanner/cache.ts`, fingerprint mtime+size, persistance disque) → scan froid 3,24s / chaud 0,14s. Fix racine.
+  - [x] Heartbeat SSE : commentaire `: keepalive\n\n` toutes les 15s (api.ts).
+  - [x] UI tolérante : debounce 5s avant « Hors ligne » (App.tsx) — EventSource reconnecte seul.
 - [ ] Vue « skills les plus utilisés » (demandé par Chris)
 - [ ] Share cards canvas client-side (export PNG 1200×630)
 

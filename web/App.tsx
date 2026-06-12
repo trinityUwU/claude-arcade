@@ -34,12 +34,19 @@ export function App(): React.JSX.Element {
   useEffect(() => { void load("/api/achievements"); }, [load]);
 
   // Flux temps réel : le serveur pousse un scan frais à chaque activité de session.
+  // Tolérant aux coupures : EventSource se reconnecte seul → on ne passe « Hors ligne »
+  // que si la coupure dure (>5s), pour éviter le clignotement du badge Live.
   useEffect(() => {
     const es = new EventSource("/api/stream");
-    es.onopen = () => setLive(true);
-    es.onerror = () => setLive(false);
+    let offlineTimer: ReturnType<typeof setTimeout> | null = null;
+    const clearTimer = (): void => { if (offlineTimer) { clearTimeout(offlineTimer); offlineTimer = null; } };
+    es.onopen = () => { clearTimer(); setLive(true); };
+    es.onerror = () => {
+      if (offlineTimer) return;
+      offlineTimer = setTimeout(() => setLive(false), 5000);
+    };
     es.addEventListener("update", (e) => setData(JSON.parse((e as MessageEvent).data) as ScanResult));
-    return () => es.close();
+    return () => { clearTimer(); es.close(); };
   }, []);
 
   const rescan = useCallback(async () => {

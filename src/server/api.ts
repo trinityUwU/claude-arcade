@@ -29,6 +29,15 @@ function broadcast(result: ScanResult): void {
   }
 }
 
+// Heartbeat : commentaire SSE périodique pour garder la connexion vivante côté navigateur,
+// même quand un rescan tient l'event loop quelques centaines de ms.
+const HEARTBEAT = encoder.encode(": keepalive\n\n");
+setInterval(() => {
+  for (const c of clients) {
+    try { c.enqueue(HEARTBEAT); } catch { clients.delete(c); }
+  }
+}, 15_000);
+
 /** Flux SSE : ping initial puis un event `update` à chaque rescan. */
 function streamResponse(): Response {
   let ref: ReadableStreamDefaultController<Uint8Array>;
