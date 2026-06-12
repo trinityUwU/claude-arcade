@@ -1,0 +1,9 @@
+name: claude-arcade
+type: web
+stack: bun
+port: 4317
+start: start.sh
+stop: stop.sh
+logs: logs/
+e2e:
+  url: http://localhost:4317

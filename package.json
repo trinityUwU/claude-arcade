@@ -1,0 +1,21 @@
+{
+  "name": "claude-arcade",
+  "version": "0.1.0",
+  "description": "Dashboard arcade gamifié + boucle d'auto-amélioration pour Claude Code. 100% local, zéro API externe.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "scan": "bun run src/cli.ts",
+    "serve": "bun run src/server/api.ts",
+    "test": "bun test",
+    "typecheck": "bunx tsc --noEmit"
+  },
+  "dependencies": {
+    "pino": "^9.5.0",
+    "pino-pretty": "^13.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.7.0"
+  }
+}
