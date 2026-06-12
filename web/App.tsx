@@ -20,6 +20,7 @@ export function App(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [cat, setCat] = useState("Tous");
   const [scanning, setScanning] = useState(false);
+  const [live, setLive] = useState(false);
 
   const load = useCallback(async (url: string, method = "GET") => {
     try {
@@ -31,6 +32,15 @@ export function App(): React.JSX.Element {
   }, []);
 
   useEffect(() => { void load("/api/achievements"); }, [load]);
+
+  // Flux temps réel : le serveur pousse un scan frais à chaque activité de session.
+  useEffect(() => {
+    const es = new EventSource("/api/stream");
+    es.onopen = () => setLive(true);
+    es.onerror = () => setLive(false);
+    es.addEventListener("update", (e) => setData(JSON.parse((e as MessageEvent).data) as ScanResult));
+    return () => es.close();
+  }, []);
 
   const rescan = useCallback(async () => {
     setScanning(true);
@@ -51,7 +61,7 @@ export function App(): React.JSX.Element {
     <div className="flex h-screen overflow-hidden">
       <Sidebar data={data} active={cat} onPick={setCat} />
       <main className="flex flex-1 flex-col overflow-hidden">
-        <Topbar data={data} onRescan={rescan} scanning={scanning} />
+        <Topbar data={data} onRescan={rescan} scanning={scanning} live={live} />
         <div className="flex-1 overflow-y-auto px-8 py-6">
           <motion.div layout className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <AnimatePresence mode="popLayout">

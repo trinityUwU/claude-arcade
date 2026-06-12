@@ -5,9 +5,9 @@
 - [ ] Phase 3 — hook SessionEnd + loop/review (claude -p) + onglet Learnings + merge-draft
 
 ## À faire (priorité)
+- [ ] Cache incrémental scanner (fingerprint mtime+size) — rend le rescan temps réel quasi gratuit (actuel : 2,5s/648 sessions, throttlé à 8s)
+- [ ] Vue « skills les plus utilisés » (demandé par Chris)
 - [ ] Share cards canvas client-side (export PNG 1200×630)
-- [ ] Cache incrémental scanner (fingerprint mtime+size) — optimisation, scan actuel = 2,5s/648 sessions
-- [ ] Bouton « Rescan » dans l'UI (POST /api/rescan)
 
 ## Backlog
 - [ ] Recouper métriques avec claude-usage-stats MCP
