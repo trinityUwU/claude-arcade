@@ -3,7 +3,7 @@ import { join, resolve } from "node:path";
 import index from "../../web/index.html";
 import { runScan } from "../scan.ts";
 import { loadState, stateDir } from "../engine/state.ts";
-import { loadInsights, loadGraph, loadAllSummaries, loadSummary, loadChampions, loadEvolution, loadInjections, loadSessionEvents, loadPrinciples } from "../consolidate/store.ts";
+import { loadInsights, loadGraph, loadAllSummaries, loadSummary, loadChampions, loadEvolution, loadInjections, loadSessionEvents, loadPrinciples, loadCanonicalRegistry } from "../consolidate/store.ts";
 import { consolidateStatus, startConsolidation, stopConsolidation } from "../consolidate/job.ts";
 import { judgeStatus, startJudging, stopJudging } from "../consolidate/judge-job.ts";
 import { readSession } from "../scanner/session-reader.ts";
@@ -119,6 +119,7 @@ const server = Bun.serve({
       Response.json((await loadChampions()) ?? { generatedAt: 0, categories: [] }),
     "/api/champions/:category": async (req) => championResponse(req.params.category),
     "/api/problems": async () => problemsResponse(),
+    "/api/canonical": async () => Response.json(await loadCanonicalRegistry()),
     "/api/evolution": async () =>
       Response.json(
         (await loadEvolution()) ?? {

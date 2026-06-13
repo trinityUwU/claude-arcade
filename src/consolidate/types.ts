@@ -15,6 +15,13 @@ export interface ResolutionSchema {
   outcome: ResolutionOutcome;
 }
 
+/** Indication de classe canonique émise par le LLM de consolidation (avant résolution). */
+export interface CanonicalHint {
+  id: string;          // id d'une classe existante, ou "" si le LLM en propose une nouvelle
+  name: string;        // nom court réutilisable de la classe
+  definition: string;  // définition d'une phrase (sert à créer la classe si nouvelle)
+}
+
 /** Un problème rencontré dans la session, avec son schéma de résolution. */
 export interface Problem {
   id: string;
@@ -22,6 +29,25 @@ export interface Problem {
   category: string;
   severity: ProblemSeverity;
   resolution_schema: ResolutionSchema;
+  canonicalClassId?: string;   // classe canonique résolue (Phase 1) ; absent sur résumés v1-v3
+  canonicalHint?: CanonicalHint; // hint brut du LLM, consommé par resolveCanonical puis retiré
+}
+
+/** Classe canonique de problème : taxonomie évolutive partagée entre sessions/projets.
+ *  Construite par le LLM de consolidation (assigne existant ou crée), pas par token-overlap. */
+export interface CanonicalClass {
+  id: string;          // slug stable, ex "config-systemd"
+  name: string;        // nom lisible court
+  definition: string;  // définition d'une phrase
+  createdAt: number;
+  occurrences: number; // nb de problèmes rattachés (maj à chaque résolution)
+}
+
+/** Registre persistant des classes canoniques (`canonical-classes.json`). */
+export interface CanonicalRegistry {
+  schemaVersion: number;
+  updatedAt: number;
+  classes: CanonicalClass[];
 }
 
 export type PrinciplePolarity = "positive" | "negative";

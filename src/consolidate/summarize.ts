@@ -51,13 +51,14 @@ export async function runIsolatedClaude(prompt: string, model: string, timeoutMs
   }
 }
 
-/** Résume un digest texte → champs structurés, ou null si échec/illisible. */
+/** Résume un digest texte → champs structurés, ou null si échec/illisible.
+ *  `canonicalIndex` = liste bornée des classes canoniques existantes (Phase 1). */
 export async function summarizeDigest(
-  digestText: string, model = defaultModel(), timeoutMs = 120_000,
+  digestText: string, model = defaultModel(), timeoutMs = 120_000, canonicalIndex = "",
 ): Promise<SummaryFields | null> {
   if (!digestText.trim()) return null;
   try {
-    const raw = await runIsolatedClaude(buildSummaryPrompt(digestText), model, timeoutMs);
+    const raw = await runIsolatedClaude(buildSummaryPrompt(digestText, canonicalIndex), model, timeoutMs);
     const fields = validateSummary(extractJson(envelopeResult(raw)));
     if (!fields) logger.warn("résumé : JSON non extractible");
     return fields;

@@ -4,7 +4,7 @@ import type {
   SessionSummary, ChampionsData, EvolutionBucket, EvolutionData,
   TrendDirection, SchemaInstance,
 } from "./types.ts";
-import { groupingKey } from "./text-normalize.ts";
+import { problemKey } from "./canonical.ts";
 
 const DAY = 86_400_000;
 
@@ -43,7 +43,7 @@ function computeRecurrence(summaries: SessionSummary[]): Map<string, number> {
   for (const s of summaries) {
     const at = realTs(s);
     for (const p of s.problems ?? []) {
-      const key = groupingKey(p.category);
+      const key = problemKey(p);
       if (key) flat.push({ key, at, week: weekStart(at) });
     }
   }
@@ -66,7 +66,7 @@ function bucketize(summaries: SessionSummary[]): RawBucket[] {
     const start = weekStart(realTs(s));
     const b = by.get(start) ?? { start, sessions: [], problems: 0, recurring: recurring.get(`${start}`) ?? 0 };
     b.sessions.push(s);
-    b.problems += (s.problems ?? []).filter((p) => groupingKey(p.category)).length;
+    b.problems += (s.problems ?? []).filter((p) => problemKey(p)).length;
     by.set(start, b);
   }
   return [...by.values()].sort((a, b) => a.start - b.start);

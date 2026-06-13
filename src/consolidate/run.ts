@@ -10,7 +10,9 @@ import { summarizeDigest, defaultModel } from "./summarize.ts";
 import {
   loadIndex, saveIndex, saveSummary, isProcessed, markProcessed,
   loadAllSummaries, saveInsights, saveGraph, saveChampions, saveEvolution, savePrinciples, loadJudgments,
+  loadCanonicalRegistry, saveCanonicalRegistry,
 } from "./store.ts";
+import { canonicalIndexText, resolveCanonical } from "./canonical.ts";
 import { buildInsights } from "./insights.ts";
 import { buildGraph } from "./graph.ts";
 import { buildChampions } from "./champions.ts";
@@ -55,14 +57,20 @@ async function selectPending(files: string[], idx: ConsolidationIndex, sinceMs?:
   return pending.sort((a, b) => b.mtime - a.mtime);
 }
 
-/** Résume une session. Retourne le résumé, "empty" (rien à résumer), ou null (échec). */
+/** Résume une session. Retourne le résumé, "empty" (rien à résumer), ou null (échec).
+ *  Résout les classes canoniques (Phase 1) : injecte l'index existant dans le prompt, puis
+ *  rattache chaque problème à sa classe (existante ou créée) et persiste le registre. */
 async function summarizeOne(file: string, fp: string, model: string): Promise<SessionSummary | "empty" | null> {
   const digest = digestTranscript(await readSession(file));
   if (!digest.text.trim() || digest.messageCount < 2) return "empty";
   const notes = await loadNotesForSession(digest.project, digest.startTs, digest.endTs);
   const digestText = notes.length ? `${digest.text}\n${renderNotesSection(notes)}` : digest.text;
-  const fields = await summarizeDigest(digestText, model);
+  const registry = await loadCanonicalRegistry();
+  const fields = await summarizeDigest(digestText, model, 120_000, canonicalIndexText(registry));
   if (!fields) return null;
+  const resolved = resolveCanonical(fields.problems, registry);
+  fields.problems = resolved.problems;
+  if (resolved.changed) await saveCanonicalRegistry(resolved.registry);
   return {
     ...fields,
     project: digest.project || fields.project,
@@ -82,7 +90,7 @@ export async function rebuildInsights(): Promise<void> {
   const insights = buildInsights(summaries);
   await saveInsights(insights);
   await saveGraph(buildGraph(summaries, insights));
-  const champions = buildChampions(summaries);
+  const champions = buildChampions(summaries, await loadCanonicalRegistry());
   await saveChampions(champions);
   await saveEvolution(buildEvolution(summaries, champions));
   await savePrinciples(buildPrinciples(summaries, await loadJudgments()));

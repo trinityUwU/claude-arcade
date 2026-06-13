@@ -6,8 +6,9 @@ import { stateDir } from "../engine/state.ts";
 import type {
   SessionSummary, ConsolidationIndex, Insights, GraphData, ChampionsData,
   EvolutionData, InjectionRecord, InjectionLog, SessionEndEvent, SessionEndLog,
-  PrinciplesData, JudgmentsData,
+  PrinciplesData, JudgmentsData, CanonicalRegistry,
 } from "./types.ts";
+import { emptyRegistry } from "./canonical.ts";
 import { logger } from "../logger.ts";
 
 const INDEX_VERSION = 1;
@@ -90,6 +91,9 @@ function principlesPath(): string {
 function judgmentsPath(): string {
   return join(stateDir(), "judgments.json");
 }
+function canonicalPath(): string {
+  return join(stateDir(), "canonical-classes.json");
+}
 
 async function writeJson(path: string, data: unknown, label: string): Promise<void> {
   try {
@@ -124,6 +128,13 @@ export const saveJudgments = (j: JudgmentsData): Promise<void> => writeJson(judg
 export async function loadJudgments(): Promise<JudgmentsData> {
   const j = await readJson<JudgmentsData>(judgmentsPath());
   return j && j.byDomain ? j : { generatedAt: 0, byDomain: {} };
+}
+
+export const saveCanonicalRegistry = (r: CanonicalRegistry): Promise<void> =>
+  writeJson(canonicalPath(), r, "saveCanonicalRegistry");
+export async function loadCanonicalRegistry(): Promise<CanonicalRegistry> {
+  const r = await readJson<CanonicalRegistry>(canonicalPath());
+  return r && Array.isArray(r.classes) ? r : emptyRegistry();
 }
 
 // Trace des injections de champions dans le contexte des sessions (visible dans l'app).

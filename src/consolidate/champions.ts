@@ -2,9 +2,9 @@
 // problème, conserve la lignée (history). Sélection darwinienne, déterministe, zéro LLM.
 import type {
   SessionSummary, Problem, SchemaInstance, ChampionEntry,
-  ChampionsData, ChampionHistoryPoint,
+  ChampionsData, ChampionHistoryPoint, CanonicalRegistry,
 } from "./types.ts";
-import { groupingKey } from "./text-normalize.ts";
+import { problemKey, emptyRegistry } from "./canonical.ts";
 import { computeFitness } from "./fitness.ts";
 
 function toInstance(s: SessionSummary, p: Problem): SchemaInstance {
@@ -35,9 +35,8 @@ function computeHistory(instances: SchemaInstance[]): ChampionHistoryPoint[] {
   return history;
 }
 
-function buildEntry(category: string, instances: SchemaInstance[]): ChampionEntry {
+function buildEntry(category: string, instances: SchemaInstance[], label: string): ChampionEntry {
   const contenders = [...instances].sort((a, b) => b.fitness - a.fitness);
-  const label = [...instances].map((i) => i.category).sort((a, b) => a.length - b.length)[0] ?? category;
   const champion = contenders.find((i) => i.resolution.outcome !== "unresolved") ?? null;
   const resolved = instances.filter((i) => i.resolution.outcome === "resolved").length;
   return {
@@ -51,11 +50,14 @@ function buildEntry(category: string, instances: SchemaInstance[]): ChampionEntr
   };
 }
 
-export function buildChampions(summaries: SessionSummary[]): ChampionsData {
+/** Regroupe par classe canonique (problemKey) ; le label = nom canonique si connu,
+ *  sinon la catégorie la plus courte du groupe (fallback résumés v1-v3). */
+export function buildChampions(summaries: SessionSummary[], registry: CanonicalRegistry = emptyRegistry()): ChampionsData {
+  const nameById = new Map(registry.classes.map((c) => [c.id, c.name]));
   const groups = new Map<string, SchemaInstance[]>();
   for (const s of summaries) {
     for (const p of s.problems ?? []) { // résumés v1 (pré-schéma) sans problems → ignorés
-      const key = groupingKey(p.category);
+      const key = problemKey(p);
       if (!key) continue;
       const list = groups.get(key) ?? [];
       list.push(toInstance(s, p));
@@ -63,7 +65,12 @@ export function buildChampions(summaries: SessionSummary[]): ChampionsData {
     }
   }
   const categories = [...groups.entries()]
-    .map(([category, instances]) => buildEntry(category, instances))
+    .map(([category, instances]) => {
+      const label = nameById.get(category)
+        ?? [...instances].map((i) => i.category).sort((a, b) => a.length - b.length)[0]
+        ?? category;
+      return buildEntry(category, instances, label);
+    })
     .sort((a, b) => b.occurrences - a.occurrences);
   return { generatedAt: Date.now(), categories };
 }

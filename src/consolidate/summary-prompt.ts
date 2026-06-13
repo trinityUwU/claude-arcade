@@ -1,7 +1,7 @@
 // Prompt de résumé de session (conçu via /prompt-architect, framework TIDD-EC).
 // Intégré en dur dans le pipeline : déterministe, JSON-only, robuste au bruit.
 
-export const SUMMARY_SCHEMA_VERSION = 3;
+export const SUMMARY_SCHEMA_VERSION = 4;
 
 const PROMPT = `Tu es un analyste de sessions de développement. On te donne le DIGEST compact d'une session Claude Code (un agent IA qui code avec un utilisateur). Tu produis UNIQUEMENT un objet JSON valide qui résume la session. Aucun autre texte.
 
@@ -22,6 +22,7 @@ INSTRUCTIONS
    - category : catégorie courte et générique, réutilisable entre sessions, ex "typage typescript", "config systemd", "layout css", "parsing json".
    - severity : trivial|minor|major.
    - resolution_schema : steps[] (séquence concrète des étapes qui ont résolu le problème, chacune = 1 phrase), tools_used[] (outils / MCP / commandes mobilisés), turns_to_resolve (entier >= 1), backtracks (entier >= 0), tool_errors (entier >= 0), outcome (resolved|partial|unresolved).
+   - canonical_class : la CLASSE CANONIQUE du problème — c'est le cœur de l'apprentissage cross-session. Consulte la liste CLASSES CANONIQUES EXISTANTES ci-dessous. Si le problème appartient à l'une d'elles (même nature, même type, peu importe la formulation ou le projet), réutilise-la : {"id": son_id_exact, "name": son_nom, "definition": sa_definition}. Sinon, propose une nouvelle classe : {"id": "", "name": nom court et générique réutilisable, "definition": définition d'une phrase de cette CLASSE de problème (pas de l'instance)}. Une classe décrit un TYPE de problème récurrent, pas un incident précis.
 9. Extrais les principles : les PROCESS DE PENSÉE et préférences de méthode — comment l'utilisateur veut qu'on travaille/code, pas un problème technique ponctuel. Capture-les comme si tu écoutais un humain expliquer sa façon de faire. Sources :
    - explicite : l'utilisateur énonce une règle ("fais toujours X", "ne commence jamais par Y", "je préfère Z") → source "stated".
    - implicite : une méthode revient et fait avancer, ou l'utilisateur valide une approche → source "inferred".
@@ -55,9 +56,9 @@ ESTIMATIONS
 - Ne PAS émettre de markdown, de balises de code, ni de texte hors du JSON.
 
 FORMAT DE SORTIE (exact, une seule ligne ou indenté, peu importe, mais JSON pur)
-{"project":string,"topic":string,"wins":string[],"errors_claude":string[],"errors_chris":string[],"decisions":string[],"quality_score":number,"links_hint":string[],"difficulty":{"level":"easy"|"medium"|"hard","why":string},"problems":[{"id":string,"description":string,"category":string,"severity":"trivial"|"minor"|"major","resolution_schema":{"steps":string[],"tools_used":string[],"turns_to_resolve":number,"backtracks":number,"tool_errors":number,"outcome":"resolved"|"partial"|"unresolved"}}],"principles":[{"id":string,"statement":string,"domain":string,"trigger":string,"polarity":"positive"|"negative","source":"stated"|"inferred","rationale":string}]}
+{"project":string,"topic":string,"wins":string[],"errors_claude":string[],"errors_chris":string[],"decisions":string[],"quality_score":number,"links_hint":string[],"difficulty":{"level":"easy"|"medium"|"hard","why":string},"problems":[{"id":string,"description":string,"category":string,"severity":"trivial"|"minor"|"major","resolution_schema":{"steps":string[],"tools_used":string[],"turns_to_resolve":number,"backtracks":number,"tool_errors":number,"outcome":"resolved"|"partial"|"unresolved"},"canonical_class":{"id":string,"name":string,"definition":string}}],"principles":[{"id":string,"statement":string,"domain":string,"trigger":string,"polarity":"positive"|"negative","source":"stated"|"inferred","rationale":string}]}
 
-EXEMPLE
+EXEMPLE (CLASSES CANONIQUES EXISTANTES contenait : "- env-binaire-manquant · binaire manquant : un exécutable requis n'est pas installé ou pas dans le PATH")
 Digest :
 [USER] refais le design du dashboard, oublie l'existant. et stp commence toujours par une maquette statique avant de coder le vrai, je deteste qu'on parte direct dans le react
 [ASSISTANT] Je liste les features puis je build une maquette HTML from scratch. [tool:Bash command=find src]
@@ -66,15 +67,19 @@ Digest :
 [ASSISTANT] [tool:Edit file_path=mockup/index.html] [ERREUR: command not found: bun]
 [ASSISTANT] J'installe bun puis je relance, c'est bon.
 Sortie :
-{"project":"","topic":"refonte design dashboard","wins":["Partir d'une maquette HTML statique from scratch avant d'intégrer"],"errors_claude":[],"errors_chris":["A changé d'avis sur le composant menu (déroulant puis accordéon) en cours de route"],"decisions":["Abandonner le design existant, repartir de zéro"],"quality_score":70,"links_hint":["dashboard","design","maquette HTML","accordéon"],"difficulty":{"level":"easy","why":"Tâche de maquette from scratch sans contrainte forte, seule friction un changement d'avis et bun manquant"},"problems":[{"id":"p1","description":"La commande bun était absente lors de l'édition de la maquette","category":"environnement","severity":"trivial","resolution_schema":{"steps":["Installer bun","Relancer la commande"],"tools_used":["Bash"],"turns_to_resolve":1,"backtracks":0,"tool_errors":1,"outcome":"resolved"}}],"principles":[{"id":"pr1","statement":"Toujours produire une maquette statique avant de coder l'implémentation réelle","domain":"design ui","trigger":"Au démarrage de toute tâche de conception d'interface","polarity":"positive","source":"stated","rationale":"L'utilisateur veut valider le visuel avant d'investir dans le code React"}]}
+{"project":"","topic":"refonte design dashboard","wins":["Partir d'une maquette HTML statique from scratch avant d'intégrer"],"errors_claude":[],"errors_chris":["A changé d'avis sur le composant menu (déroulant puis accordéon) en cours de route"],"decisions":["Abandonner le design existant, repartir de zéro"],"quality_score":70,"links_hint":["dashboard","design","maquette HTML","accordéon"],"difficulty":{"level":"easy","why":"Tâche de maquette from scratch sans contrainte forte, seule friction un changement d'avis et bun manquant"},"problems":[{"id":"p1","description":"La commande bun était absente lors de l'édition de la maquette","category":"environnement","severity":"trivial","resolution_schema":{"steps":["Installer bun","Relancer la commande"],"tools_used":["Bash"],"turns_to_resolve":1,"backtracks":0,"tool_errors":1,"outcome":"resolved"},"canonical_class":{"id":"env-binaire-manquant","name":"binaire manquant","definition":"un exécutable requis n'est pas installé ou pas dans le PATH"}}],"principles":[{"id":"pr1","statement":"Toujours produire une maquette statique avant de coder l'implémentation réelle","domain":"design ui","trigger":"Au démarrage de toute tâche de conception d'interface","polarity":"positive","source":"stated","rationale":"L'utilisateur veut valider le visuel avant d'investir dans le code React"}]}
+(Note : le problème a réutilisé la classe existante "env-binaire-manquant" au lieu d'en créer une nouvelle — c'est le comportement attendu.)
 
 CONTEXTE
-Ce résumé alimente un système de consolidation à long terme (mémoire + digest injecté). La précision et la sobriété priment : un faux positif pollue la mémoire pour des mois.
+Ce résumé alimente un système de consolidation à long terme (mémoire + digest injecté). La précision et la sobriété priment : un faux positif pollue la mémoire pour des mois. Les classes canoniques sont la clé qui relie le même problème entre projets : préfère TOUJOURS réutiliser une classe existante pertinente plutôt que d'en créer une quasi-identique.
 
-DIGEST À RÉSUMER :
 `;
 
-/** Construit le prompt complet à passer à `claude -p` pour un digest donné. */
-export function buildSummaryPrompt(digestText: string): string {
-  return `${PROMPT}${digestText}\n\nRappel : réponds UNIQUEMENT par le JSON.`;
+const NO_CLASSES = "(aucune pour l'instant — crée les classes nécessaires avec id vide)";
+
+/** Construit le prompt complet à passer à `claude -p`. `canonicalIndex` = liste bornée des
+ *  classes canoniques existantes (id · nom · définition), pour réutilisation cross-session. */
+export function buildSummaryPrompt(digestText: string, canonicalIndex = ""): string {
+  const classes = canonicalIndex.trim() || NO_CLASSES;
+  return `${PROMPT}CLASSES CANONIQUES EXISTANTES (réutilise un id si le problème colle, sinon id vide) :\n${classes}\n\nDIGEST À RÉSUMER :\n${digestText}\n\nRappel : réponds UNIQUEMENT par le JSON.`;
 }

@@ -10,6 +10,7 @@ import type {
   Principle,
   PrinciplePolarity,
   PrincipleSource,
+  CanonicalHint,
 } from "./types.ts";
 
 const DIFFICULTY_LEVELS: readonly DifficultyLevel[] = ["easy", "medium", "hard"];
@@ -89,6 +90,16 @@ function validateResolution(v: unknown): ResolutionSchema {
   };
 }
 
+/** Narrow le hint de classe canonique, ou undefined si absent/vide de nom. */
+function validateCanonicalHint(v: unknown): CanonicalHint | undefined {
+  if (!v || typeof v !== "object") return undefined;
+  const o = v as Record<string, unknown>;
+  const name = typeof o.name === "string" ? o.name.trim() : "";
+  const id = typeof o.id === "string" ? o.id.trim() : "";
+  if (!name && !id) return undefined;
+  return { id, name, definition: typeof o.definition === "string" ? o.definition.trim() : "" };
+}
+
 /** Narrow une entrée problème, ou null si description/category vides. */
 function validateProblem(v: unknown, i: number): Problem | null {
   if (!v || typeof v !== "object") return null;
@@ -96,12 +107,14 @@ function validateProblem(v: unknown, i: number): Problem | null {
   const description = typeof o.description === "string" ? o.description.trim() : "";
   const category = typeof o.category === "string" ? o.category.trim() : "";
   if (!description || !category) return null;
+  const hint = validateCanonicalHint(o.canonical_class);
   return {
     id: typeof o.id === "string" && o.id.trim() ? o.id.trim() : `p${i + 1}`,
     description,
     category,
     severity: narrowEnum(o.severity, PROBLEM_SEVERITIES, "minor"),
     resolution_schema: validateResolution(o.resolution_schema),
+    ...(hint ? { canonicalHint: hint } : {}),
   };
 }
 
