@@ -28,3 +28,27 @@ export interface ConfigFile {
   relPath: string;
   content: string;
 }
+
+// --- Couverture skills (incrément 2) : gaps à créer + morts à archiver ---
+
+export interface CoverageGap {
+  classId: string;
+  className: string;
+  definition: string;
+  occurrences: number;
+  projects: string[];
+  championFitness: number | null;
+}
+
+export interface CoverageDeadSkill {
+  name: string;
+  relPath: string;
+  invocations: number;   // via le tool Skill ; 0 = jamais invoqué explicitement (signal, pas verdict)
+  sessions: number;
+}
+
+export interface CoverageReport {
+  generatedAt: number;
+  gaps: CoverageGap[];
+  dead: CoverageDeadSkill[];
+}

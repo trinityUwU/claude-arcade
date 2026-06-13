@@ -14,10 +14,11 @@
 - [x] Onglet « Config » (`ConfigPanel.tsx`) : arbo par kind + contenu + historique git + stats skill + badges managé/patchable.
 - [x] 5 tests config (96 total) + tsc 0 + E2E Playwright réel (détail humanizer, historique git rendu, 0 erreur console/serveur).
 
-### INCRÉMENT 2 — Couverture (gaps + morts) dans rebuildInsights
-- [ ] `src/config/coverage.ts` : classe canonique récurrente (occ≥4-5, ≥2 projets) sans skill couvrant → gap ; skill jamais invoqué / fitness basse → mort.
-- [ ] `coverage.json` branché dans `rebuildInsights` (déterministe, zéro token). Section « Couverture » dans l'onglet Config.
-- [ ] tests + E2E.
+### INCRÉMENT 2 — Couverture (gaps + morts) — LIVRÉ
+- [x] `src/config/coverage.ts` : `buildCoverage` (déterministe, zéro token) — classe canonique (occ≥4, ≥2 projets) sans skill couvrant (token-overlap ≥2) → gap ; skill patchable 0 invocation → mort.
+- [x] Calcul **à la demande dans `/api/config/coverage`** (et non dans `rebuildInsights`) → évite le couplage consolidate↔scanner, toujours frais, zéro token. Section « Couverture » (bascule Fichiers/Couverture) dans `ConfigPanel`.
+- [x] 4 tests coverage (101 total) + tsc 0 + E2E réel (2 gaps + 39 morts rendus, 0 erreur console). Garde `s.problems ?? []` (résumés v1-v3).
+- [ ] **À affiner pour inc.3** : (a) la gate de CRÉATION doit exclure les classes d'échec transitoire/environnement (les 2 gaps réels — "permission mcp", "mauvais mécanisme invocation" — sont les anti-patterns que CLAUDE.md interdit de figer) ; (b) l'archivage auto ne doit PAS archiver les skills à chargement silencieux (agents, llm-*) sur le seul critère 0 invocation.
 
 ### INCRÉMENT 3 — Graduation + write-back (le cœur)
 - [ ] Gate de graduation : principe/champion diplômé (confiance haute + jugé + lift prouvé).

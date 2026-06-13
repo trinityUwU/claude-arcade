@@ -73,6 +73,7 @@ claude-arcade/
 │   │   ├── git.ts            Wrapper git scopé ~/.claude : isRepo/fileHistory/fileDiff/commitPaths/revertCommit (Bun.spawn)
 │   │   ├── scan.ts           Scan config (CLAUDE.md+rules+skills+commands+settings) · frontmatter · détection région managée · flag patchable
 │   │   ├── backup.ts         Backup complète tar.gz horodatée (~/.claude/claude-arcade/config-backups, rétention 30) · snapshotConfig/listBackups — double filet avec git
+│   │   ├── coverage.ts       buildCoverage (déterministe) : gaps (classes récurrentes sans skill) + morts (skills 0 invocation) — lu à la demande par /api/config/coverage
 │   │   └── types.ts          ConfigEntry/ConfigTree/ConfigCommit/ConfigFile
 │   ├── server/
 │   │   ├── api.ts            Bun.serve port 4317 : front + API + SSE + endpoints /api/{canonical,learning,config(/file|/history),consolidate…}

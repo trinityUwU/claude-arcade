@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { SlidersHorizontal, GitCommitHorizontal, ShieldCheck, Lock, FileText } from "lucide-react";
-import type { ConfigTree, ConfigEntry, ConfigCommit, ConfigFile } from "../../src/config/types.ts";
+import {
+  SlidersHorizontal, GitCommitHorizontal, ShieldCheck, Lock, FileText,
+  LayoutList, Radar, TriangleAlert, Archive,
+} from "lucide-react";
+import type {
+  ConfigTree, ConfigEntry, ConfigCommit, ConfigFile, CoverageReport,
+} from "../../src/config/types.ts";
 import type { SkillUsage } from "../../src/types.ts";
 import { PanelMessage } from "./SessionsPanel.tsx";
 
@@ -74,7 +79,75 @@ function Detail({ entry, file, history }: { entry: ConfigEntry; file: ConfigFile
   );
 }
 
+function ModeBtn(
+  { active, onClick, Icon, label }:
+  { active: boolean; onClick: () => void; Icon: typeof LayoutList; label: string },
+): React.JSX.Element {
+  return (
+    <button onClick={onClick}
+      className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] transition-colors
+        ${active ? "nav-active" : "text-white/50 hover:bg-white/[0.04] hover:text-white/80"}`}>
+      <Icon size={14} /> {label}
+    </button>
+  );
+}
+
+function CoverageView(): React.JSX.Element {
+  const [data, setData] = useState<CoverageReport | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    fetch("/api/config/coverage")
+      .then(async (r) => setData((await r.json()) as CoverageReport))
+      .catch((e: unknown) => setError(String(e)));
+  }, []);
+
+  if (error) return <PanelMessage text={`Erreur : ${error}`} />;
+  if (!data) return <PanelMessage text="Calcul de la couverture…" />;
+
+  return (
+    <div className="flex-1 overflow-y-auto px-8 py-6">
+      <section className="mb-8">
+        <h2 className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-white/85">
+          <TriangleAlert size={15} className="text-amber-300" /> Gaps — classes récurrentes sans skill ({data.gaps.length})
+        </h2>
+        <p className="mb-3 text-[11px] text-white/40">Candidates à création (≥4 occurrences, ≥2 projets, aucun skill ne couvre).</p>
+        {data.gaps.length === 0
+          ? <p className="text-[12px] text-white/35">Aucun gap : tes classes récurrentes sont couvertes.</p>
+          : <div className="flex flex-col gap-2">
+              {data.gaps.map((g) => (
+                <div key={g.classId} className="rounded-xl border border-amber-400/15 bg-amber-400/[0.03] p-3">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="font-mono text-[13px] text-white/90">{g.className}</span>
+                    <span className="shrink-0 text-[11px] text-amber-200/80">{g.occurrences}× · {g.projects.length} projets</span>
+                  </div>
+                  <p className="mt-1 text-[12px] leading-relaxed text-white/55">{g.definition}</p>
+                  <p className="mt-1.5 text-[10px] text-white/35">{g.projects.join(" · ")}</p>
+                </div>
+              ))}
+            </div>}
+      </section>
+      <section>
+        <h2 className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-white/85">
+          <Archive size={15} className="text-white/45" /> Morts — skills jamais invoqués ({data.dead.length})
+        </h2>
+        <p className="mb-3 text-[11px] text-white/40">0 invocation via le tool Skill = signal d'archivage (pas un verdict : certains skills sont chargés silencieusement).</p>
+        {data.dead.length === 0
+          ? <p className="text-[12px] text-white/35">Aucun skill mort détecté.</p>
+          : <div className="grid grid-cols-2 gap-2 xl:grid-cols-3">
+              {data.dead.map((d) => (
+                <div key={d.relPath} className="rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-2">
+                  <span className="font-mono text-[12px] text-white/75">{d.name}</span>
+                  <p className="text-[10px] text-white/35">{d.invocations} invoc.</p>
+                </div>
+              ))}
+            </div>}
+      </section>
+    </div>
+  );
+}
+
 export function ConfigPanel(): React.JSX.Element {
+  const [mode, setMode] = useState<"files" | "coverage">("files");
   const [tree, setTree] = useState<ConfigTree | null>(null);
   const [skills, setSkills] = useState<SkillUsage[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -112,7 +185,13 @@ export function ConfigPanel(): React.JSX.Element {
   if (!tree) return <PanelMessage text="Chargement…" />;
 
   return (
-    <div className="flex flex-1 overflow-hidden">
+    <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex items-center gap-1 border-b border-white/[0.07] px-4 py-2.5">
+        <ModeBtn active={mode === "files"} onClick={() => setMode("files")} Icon={LayoutList} label="Fichiers" />
+        <ModeBtn active={mode === "coverage"} onClick={() => setMode("coverage")} Icon={Radar} label="Couverture" />
+      </div>
+      {mode === "coverage" ? <CoverageView /> : (
+      <div className="flex flex-1 overflow-hidden">
       <div className="flex w-72 shrink-0 flex-col gap-1 overflow-y-auto border-r border-white/[0.07] px-3 py-5">
         <header className="mb-3 flex items-center gap-2 px-1">
           <SlidersHorizontal size={18} className="text-fuchsia-200" />
@@ -143,6 +222,8 @@ export function ConfigPanel(): React.JSX.Element {
               <p className="text-[13px]">Sélectionne un fichier de config.</p>
             </div>}
       </div>
+      </div>
+      )}
     </div>
   );
 }

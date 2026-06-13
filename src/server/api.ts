@@ -11,6 +11,7 @@ import { cleanTranscript } from "../consolidate/transcript-view.ts";
 import { watchSessions } from "./watch.ts";
 import { scanConfig } from "../config/scan.ts";
 import { fileHistory } from "../config/git.ts";
+import { buildCoverage } from "../config/coverage.ts";
 import { configRoot } from "../config/paths.ts";
 import { logger } from "../logger.ts";
 import type { ScanResult } from "../types.ts";
@@ -90,6 +91,17 @@ async function configHistoryResponse(rel: string | null): Promise<Response> {
   const tree = await scanConfig();
   if (!tree.entries.some((e) => e.relPath === rel)) return new Response("forbidden", { status: 403 });
   return Response.json(await fileHistory(rel));
+}
+
+/** Couverture skills (gaps + morts) calculée à la demande depuis les données persistées + le scan. */
+async function configCoverageResponse(): Promise<Response> {
+  const [scan, tree, summaries, registry, champions] = await Promise.all([
+    getScan(), scanConfig(), loadAllSummaries(), loadCanonicalRegistry(), loadChampions(),
+  ]);
+  const report = buildCoverage(
+    summaries, registry, champions ?? { generatedAt: 0, categories: [] }, scan.topSkills, tree.entries,
+  );
+  return Response.json(report);
 }
 
 function broadcast(result: ScanResult): void {
@@ -185,6 +197,7 @@ const server = Bun.serve({
     "/api/config": async () => Response.json(await scanConfig()),
     "/api/config/file": async (req) => configFileResponse(new URL(req.url).searchParams.get("path")),
     "/api/config/history": async (req) => configHistoryResponse(new URL(req.url).searchParams.get("path")),
+    "/api/config/coverage": async () => configCoverageResponse(),
   },
   error(err) {
     logger.error({ err }, "erreur serveur");
