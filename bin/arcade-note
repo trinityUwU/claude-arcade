@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Wrapper du canal d'écriture des notes vivantes. Exécute le CLI Bun sur le cwd courant.
+exec bun run /mnt/projects/claude-arcade/src/notes/arcade-note.ts "$@"

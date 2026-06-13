@@ -24,17 +24,16 @@ Capturer COMMENT Chris travaille/code depuis le chatting naturel, mettre les mé
 - [ ] **Approches multiples par problème** (`Problem.approaches`) : plusieurs manières pour un même sujet DANS une session → comparées puis recomparées cross-session. PRÉMATURÉ : data-starved + recouvre champions/judge déjà livrés. À faire APRÈS densification (sinon surcouche sans différence visible).
 - [ ] **Densification** : re-consolider en v3 pour faire monter occurrences + faire émerger contradictions réelles (manuel, appel de Chris sur le coût).
 
-## ════ PROCHAINE VAGUE — Bridge de notes vivantes (priorité #1) ════
-Plan complet en mémoire (technical_decision d467f70d). Claude note au fil de la discussion → consolidation relie au résumé → app affiche notes + artefacts ouvrables.
-**Décisions tranchées** : emplacement `~/.claude/claude-arcade/session-notes/<cwd-hash>/` (notes.jsonl append-only + artifacts/) ; rattachement par cwd + fenêtre temporelle [startTs,endTs] (PAS le session_id) ; canal = CLI bun `arcade-note <kind> "<text>" [--artifact path]` via Bash (pas de MCP) ; kinds = decision|contradiction|stack|pattern|summary|artifact|note ; 100% local.
-- [ ] A. CLI `src/notes/arcade-note.ts` + format + bin package.json + tests writer
-- [ ] B. Convention CLAUDE.md (via /prompt-architect) : noter décisions/contradictions/patterns/artefacts au fil de l'eau
-- [ ] C. `session-notes.ts` : `loadNotesForSession(cwd, startTs, endTs)` + branchement run.ts
-- [ ] D. Notes → digest (section haute fiabilité) + `SessionSummary.notes` + parse rétro-compat
-- [ ] E. App : champ « Notes de session » + artefacts ouvrables + `/api/session-notes/:id`
-- [ ] F. Tests + validation E2E (note → conso → rattachement → affichage)
+## ════ BRIDGE DE NOTES VIVANTES — LIVRÉ ════
+Claude note au fil de la discussion → consolidation relie au résumé par cwd+fenêtre → app affiche notes + artefacts ouvrables. Emplacement `~/.claude/claude-arcade/session-notes/<cwd-hash>/` (notes.jsonl append-only + artifacts/). Rattachement par cwd + fenêtre [startTs,endTs] (PAS le session_id, marge 2 min). 100% local.
+- [x] A. CLI `src/notes/{types,store,arcade-note}.ts` + wrapper `bin/arcade-note` + symlink `~/.local/bin`. kinds = decision|contradiction|stack|pattern|summary|artifact|note. `--artifact` archive une copie durable.
+- [x] B. Convention `01b` dans CLAUDE.md global : noter décisions/contradictions/stack/patterns/artefacts au fil de l'eau.
+- [x] C. `session-notes.ts` : `loadNotesForSession(cwd, startTs, endTs)` + `renderNotesSection` + branchement `run.ts:summarizeOne`. `endTs` ajouté au digest.
+- [x] D. Notes → digest (section « NOTES TEMPS RÉEL — haute fiabilité ») + `SessionSummary.{endTs,notes}`. Notes attachées post-hoc (PAS via le LLM) → aucun changement parse, anciens résumés → `notes:[]`.
+- [x] E. App : section « Notes de session » (badge par kind + tags + lien artefact) dans SessionsPanel + badge compteur. Route `/api/artifact?path=` (sert l'archive, refuse tout chemin non référencé → 403).
+- [x] F. 5 tests `tests/notes.test.ts` (cwdHash, roundtrip, fenêtre, rendu). Validé E2E réel : note datée → consolidation `claude -p` → résumé persisté avec notes → UI (le LLM cite les notes dans la difficulté). 73/73 tests, tsc 0.
 
-**Ordre global suite (B)** : Bridge #1 (enrichit la matière première de tout) > Densification #2 (re-conso v3 manuelle, coût = appel Chris) > Problem.approaches #3 (prématuré tant que data-starved).
+**Ordre global suite (B)** : ~~Bridge #1~~ ✓ > Densification #2 (re-conso v3 manuelle, coût = appel Chris) > Problem.approaches #3 (prématuré tant que data-starved).
 
 ## Vision validée — voir docs/VISION.md (Consolidation & Brain)
 Système de consolidation 4 couches + digest PUSH (BRAIN.md injecté via SessionStart) + cron zéro-perte (systemd Persistent). But : courbe d'apprentissage continue.

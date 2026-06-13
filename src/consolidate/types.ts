@@ -1,4 +1,5 @@
 // Types de la couche de consolidation (résumés de session).
+import type { SessionNote } from "../notes/types.ts";
 
 export type DifficultyLevel = "easy" | "medium" | "hard";
 export type ProblemSeverity = "trivial" | "minor" | "major";
@@ -60,6 +61,8 @@ export interface SessionSummary extends SummaryFields {
   fingerprint: string;
   model: string;
   startTs: number; // epoch ms réel de la session, 0 si inconnu (anciens JSON → redaté ou fallback)
+  endTs: number;   // epoch ms du dernier message (fenêtre de rattachement des notes), 0 si inconnu
+  notes: SessionNote[]; // notes vivantes prises pendant la session (Bridge), [] si aucune
   summarizedAt: number;
   schemaVersion: number;
 }

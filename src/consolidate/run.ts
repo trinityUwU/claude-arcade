@@ -5,6 +5,7 @@ import { listSessionFiles } from "../scanner/session-reader.ts";
 import { readSession } from "../scanner/session-reader.ts";
 import { fileFingerprint } from "../scanner/fingerprint.ts";
 import { digestTranscript } from "./transcript-digest.ts";
+import { loadNotesForSession, renderNotesSection } from "./session-notes.ts";
 import { summarizeDigest, defaultModel } from "./summarize.ts";
 import {
   loadIndex, saveIndex, saveSummary, isProcessed, markProcessed,
@@ -58,7 +59,9 @@ async function selectPending(files: string[], idx: ConsolidationIndex, sinceMs?:
 async function summarizeOne(file: string, fp: string, model: string): Promise<SessionSummary | "empty" | null> {
   const digest = digestTranscript(await readSession(file));
   if (!digest.text.trim() || digest.messageCount < 2) return "empty";
-  const fields = await summarizeDigest(digest.text, model);
+  const notes = await loadNotesForSession(digest.project, digest.startTs, digest.endTs);
+  const digestText = notes.length ? `${digest.text}\n${renderNotesSection(notes)}` : digest.text;
+  const fields = await summarizeDigest(digestText, model);
   if (!fields) return null;
   return {
     ...fields,
@@ -66,6 +69,8 @@ async function summarizeOne(file: string, fp: string, model: string): Promise<Se
     sessionId: digest.sessionId || basename(file, ".jsonl"),
     file, fingerprint: fp, model,
     startTs: digest.startTs,
+    endTs: digest.endTs,
+    notes,
     summarizedAt: Date.now(),
     schemaVersion: SUMMARY_SCHEMA_VERSION,
   };

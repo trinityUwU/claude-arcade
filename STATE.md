@@ -1,6 +1,15 @@
 # STATE — claude-arcade
 *Dernière mise à jour : 2026-06-13*
 
+## Session 2026-06-13 (suite) — BRIDGE DE NOTES VIVANTES (LIVRÉ)
+Pont entre la discussion en cours et la consolidation : Claude prend des notes EN DIRECT (`arcade-note`), rattachées ensuite au résumé comme **source haute fiabilité**, et affichées dans l'app avec leurs artefacts ouvrables. Réponse au besoin de Chris ("une qualité qu'on puisse palper", capter systématiquement le « note ça en mémoire »).
+- **Canal d'écriture** (`src/notes/`) : CLI `arcade-note <kind> "<texte>" [--artifact path] [--tag t]` (wrapper `bin/arcade-note` + symlink `~/.local/bin` → appelable depuis tout cwd). kinds = decision|contradiction|stack|pattern|summary|artifact|note. Bucket par cwd (`session-notes/<sha1-16>/`) : `notes.jsonl` append-only + `meta.json` (cwd) + `artifacts/` (copie durable de l'original via `--artifact`). 100% local, pas de MCP.
+- **Rattachement** (`session-notes.ts`) : `loadNotesForSession(cwd, startTs, endTs)` filtre par fenêtre temporelle (marge 2 min) — PAS le session_id (que l'agent ne connaît pas de façon fiable). `digest` capture désormais `endTs`. Multi-session même cwd en parallèle = cas rare accepté (MVP).
+- **Injection digest** : `renderNotesSection` ajoute un bloc « NOTES TEMPS RÉEL — haute fiabilité » au digest avant le `claude -p` → le résumeur privilégie les notes sur sa reconstruction. `SessionSummary` gagne `endTs` + `notes[]`. Notes attachées POST-HOC (pas produites par le LLM) → zéro changement parse, anciens résumés → `notes:[]`.
+- **App** : section « Notes de session » dans SessionsPanel (badge couleur par kind + tags + lien artefact ouvrable) + badge compteur dans l'en-tête. Route `/api/artifact?path=` sert l'archive et **refuse tout chemin non référencé (403)**.
+- **Convention** : section `01b` ajoutée au CLAUDE.md global de Chris (noter décisions/contradictions/stack/patterns/artefacts au fil de l'eau).
+- **Validé E2E sur données RÉELLES** : note datée injectée dans la fenêtre d'une vraie session → `claude -p` réel → résumé persisté avec 2 notes → UI rendue (Playwright) → le LLM **cite les notes** dans la ligne difficulté (preuve qu'il les a lues). Sécurité `/etc/passwd` → 403. Données E2E nettoyées après coup. 73/73 tests (+5), tsc 0.
+
 ## Session 2026-06-13 (suite) — COUCHE (B) : principes / process de pensée (VAGUE 1 LIVRÉE)
 Capturer COMMENT Chris veut qu'on travaille/code depuis le chatting naturel (pas un bug), mettre les méthodes en compétition, garder les plus confiantes, les injecter pour conditionner les sessions futures (cross-projet). (A) = problèmes techniques (fitness d'exécution, déjà là) ; (B) = principes de pensée (qualitatif, global). Les deux coexistent.
 - **Data v3** : `Principle {id, statement, domain, trigger, polarity (positive/negative), source (stated/inferred), rationale}` + `SummaryFields.principles`. SCHEMA_VERSION 2→3. Prompt v3 : extraction des principes (explicites "fais toujours X" / implicites validés) + exemple. Parse v3 : `validatePrinciple` + rétro-compat (v1/v2 absent → `[]`).

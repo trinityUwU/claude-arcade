@@ -1,10 +1,51 @@
 import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ScrollText, ChevronRight } from "lucide-react";
+import { ScrollText, ChevronRight, NotebookPen, Paperclip } from "lucide-react";
 import type { SessionSummary, Problem } from "../../src/consolidate/types.ts";
+import type { SessionNote, NoteKind } from "../../src/notes/types.ts";
 import {
   basename, qualityColor, DifficultyBadge, SeverityBadge, OutcomeBadge, SectionHeader,
 } from "../lib/format.tsx";
+
+const NOTE_TONE: Record<NoteKind, string> = {
+  decision: "text-sky-300/90 border-sky-400/30",
+  contradiction: "text-rose-300/90 border-rose-400/30",
+  stack: "text-violet-300/90 border-violet-400/30",
+  pattern: "text-emerald-300/90 border-emerald-400/30",
+  summary: "text-amber-300/90 border-amber-400/30",
+  artifact: "text-fuchsia-300/90 border-fuchsia-400/30",
+  note: "text-white/60 border-white/15",
+};
+
+function NoteRow({ n }: { n: SessionNote }): React.JSX.Element {
+  const href = n.archivedPath ?? n.artifactPath;
+  return (
+    <li className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-2.5">
+      <div className="flex items-center gap-2">
+        <span className={`rounded border px-1.5 py-0.5 text-[9px] uppercase ${NOTE_TONE[n.kind]}`}>{n.kind}</span>
+        {n.tags?.map((t) => <span key={t} className="text-[10px] text-white/30">#{t}</span>)}
+      </div>
+      <p className="mt-1 text-[12.5px] leading-snug text-white/75">{n.text}</p>
+      {n.artifactPath && (
+        <a href={href ? `/api/artifact?path=${encodeURIComponent(href)}` : undefined}
+          target="_blank" rel="noreferrer"
+          className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-fuchsia-300/80 hover:text-fuchsia-200">
+          <Paperclip size={11} strokeWidth={2} /><span className="font-mono">{basename(n.artifactPath)}</span>
+        </a>
+      )}
+    </li>
+  );
+}
+
+function NotesBlock({ notes }: { notes: SessionNote[] }): React.JSX.Element | null {
+  if (!notes.length) return null;
+  return (
+    <div className="mt-3">
+      <SectionHeader label="Notes de session" />
+      <ul className="mt-2 space-y-1.5">{notes.map((n, i) => <NoteRow key={i} n={n} />)}</ul>
+    </div>
+  );
+}
 
 function Bullets({ title, items, tone }: { title: string; items: string[]; tone: string }): React.JSX.Element | null {
   if (!items.length) return null;
@@ -71,6 +112,7 @@ function SessionExtras({ s }: { s: SessionSummary }): React.JSX.Element {
 function SessionCard({ s, index }: { s: SessionSummary; index: number }): React.JSX.Element {
   const [open, setOpen] = useState(false);
   const problems = s.problems ?? [];
+  const notes = s.notes ?? [];
   const isV1 = s.difficulty === undefined && s.problems === undefined;
   return (
     <motion.div
@@ -89,6 +131,11 @@ function SessionCard({ s, index }: { s: SessionSummary; index: number }): React.
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {s.difficulty && <DifficultyBadge level={s.difficulty.level} />}
+          {notes.length > 0 && (
+            <span className="flex items-center gap-1 text-[11px] tabular-nums text-fuchsia-300/70">
+              <NotebookPen size={12} strokeWidth={2} />{notes.length}
+            </span>
+          )}
           {!isV1 && <span className="text-[11px] tabular-nums text-white/40">{problems.length} pb</span>}
           <span className={`text-base font-black tabular-nums ${qualityColor(s.quality_score)}`}>{s.quality_score}</span>
         </div>
@@ -96,6 +143,7 @@ function SessionCard({ s, index }: { s: SessionSummary; index: number }): React.
       {open && (
         <div className="mt-3 border-t border-white/[0.06] pt-3">
           {s.difficulty && <p className="text-[12px] italic leading-snug text-white/50">{s.difficulty.why}</p>}
+          <NotesBlock notes={notes} />
           {problems.length > 0 && (
             <div className="mt-3 space-y-2">
               <SectionHeader label="Problèmes" />

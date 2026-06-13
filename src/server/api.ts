@@ -1,7 +1,8 @@
 // Serveur dashboard : sert le front React + l'API + un flux SSE temps réel. 100% local.
+import { join, resolve } from "node:path";
 import index from "../../web/index.html";
 import { runScan } from "../scan.ts";
-import { loadState } from "../engine/state.ts";
+import { loadState, stateDir } from "../engine/state.ts";
 import { loadInsights, loadGraph, loadAllSummaries, loadSummary, loadChampions, loadEvolution, loadInjections, loadSessionEvents, loadPrinciples } from "../consolidate/store.ts";
 import { consolidateStatus, startConsolidation, stopConsolidation } from "../consolidate/job.ts";
 import { judgeStatus, startJudging, stopJudging } from "../consolidate/judge-job.ts";
@@ -50,6 +51,23 @@ async function problemsResponse(): Promise<Response> {
   const flat = data.categories.flatMap((c) => c.contenders);
   flat.sort((a, b) => b.at - a.at);
   return Response.json(flat);
+}
+
+/** Un artefact n'est servable que s'il est sous le bucket des notes, ou référencé par une note. */
+async function artifactAllowed(abs: string): Promise<boolean> {
+  if (abs.startsWith(`${join(stateDir(), "session-notes")}/`)) return true;
+  const sums = await loadAllSummaries();
+  return sums.some((s) => (s.notes ?? []).some((n) => n.artifactPath === abs || n.archivedPath === abs));
+}
+
+/** Sert le contenu d'un artefact de note (vue dans le navigateur). Refuse tout chemin non référencé. */
+async function artifactResponse(raw: string | null): Promise<Response> {
+  if (!raw) return new Response("missing path", { status: 400 });
+  const abs = resolve(raw);
+  if (!(await artifactAllowed(abs))) return new Response("forbidden", { status: 403 });
+  const f = Bun.file(abs);
+  if (!(await f.exists())) return new Response("not found", { status: 404 });
+  return new Response(f);
 }
 
 function broadcast(result: ScanResult): void {
@@ -121,6 +139,7 @@ const server = Bun.serve({
     "/api/principles/judge/stop": { POST: () => Response.json({ stopped: stopJudging() }) },
     "/api/injections": async () => Response.json(await loadInjections()),
     "/api/session-events": async () => Response.json(await loadSessionEvents()),
+    "/api/artifact": async (req) => artifactResponse(new URL(req.url).searchParams.get("path")),
     "/api/transcript/:id": async (req) => transcriptResponse(req.params.id),
     "/api/consolidate/status": async () => Response.json(await consolidateStatus()),
     "/api/consolidate": {

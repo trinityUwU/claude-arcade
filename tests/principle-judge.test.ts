@@ -16,7 +16,7 @@ function summary(over: Partial<SessionSummary>): SessionSummary {
     decisions: [], quality_score: 50, links_hint: [],
     difficulty: { level: "medium", why: "" }, problems: [], principles: [],
     sessionId: Math.random().toString(36).slice(2), file: "f", fingerprint: "1:1",
-    model: "sonnet", startTs: 0, summarizedAt: 0, schemaVersion: 3, ...over,
+    model: "sonnet", startTs: 0, endTs: 0, notes: [], summarizedAt: 0, schemaVersion: 3, ...over,
   };
 }
 

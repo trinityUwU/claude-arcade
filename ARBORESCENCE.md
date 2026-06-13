@@ -20,9 +20,14 @@ claude-arcade/
 │   │   ├── fingerprint.ts    Empreinte fichier (mtime+size) partagée scan/consolidation
 │   │   ├── cache.ts          Cache incrémental : ne re-parse que les transcripts modifiés
 │   │   └── aggregate.ts      Combine les sessions en agrégat plat (lifetime + best_session)
+│   ├── notes/                Bridge — notes vivantes prises par Claude pendant la session
+│   │   ├── types.ts          NoteKind (decision|contradiction|stack|pattern|summary|artifact|note) + SessionNote
+│   │   ├── store.ts          Bucket par cwd (hash sha1) : notes.jsonl append-only + artifacts/ (copie durable)
+│   │   └── arcade-note.ts    CLI canal d'écriture : `arcade-note <kind> "<texte>" [--artifact path] [--tag t]`
 │   ├── consolidate/          Couches 1-3 — résumés, insights, évolution darwinienne
 │   │   ├── types.ts          SummaryFields(+difficulty,problems), SessionSummary(+startTs), Champions/Evolution/Injection
-│   │   ├── transcript-digest.ts  Réduit un transcript → digest texte borné (16k) + capture startTs réel
+│   │   ├── transcript-digest.ts  Réduit un transcript → digest texte borné (16k) + capture startTs/endTs réels
+│   │   ├── session-notes.ts  (Bridge) Rattache les notes du cwd par fenêtre [startTs,endTs] + rend la section digest haute fiabilité
 │   │   ├── summary-prompt.ts Prompt TIDD-EC v2 : extrait difficulté + problèmes + resolution_schema (JSON stable)
 │   │   ├── summarize.ts      Spawn `claude -p` isolé (zéro MCP, plan, sonnet cloud)
 │   │   ├── parse.ts          Extraction + validation robustes du JSON LLM v2 + rétro-compat v1 (testé)
@@ -61,6 +66,8 @@ claude-arcade/
 │   ├── server/
 │   │   ├── api.ts            Bun.serve port 4317 : front + API + SSE + endpoints /api/consolidate(/status|/stop)
 │   │   └── watch.ts          Surveille ~/.claude/projects → déclenche rescan auto sur activité
+├── bin/
+│   └── arcade-note           Wrapper bash du CLI de notes (symlink ~/.local/bin/arcade-note → appelable partout)
 ├── bunfig.toml               Plugin bun-plugin-tailwind pour le bundling CSS
 ├── web/                      Front React/Tailwind v4/Framer Motion (dark, bundlé par Bun)
 │   ├── index.html            Entrypoint (import main.tsx + styles.css)
@@ -88,6 +95,7 @@ claude-arcade/
     ├── insights.test.ts      (C2) Tests insights / récurrence
     ├── champions.test.ts     (C3) Tests fitness composite + élection champion + lignée
     ├── evolution.test.ts     (C3) Tests buckets, recurrence, tendances (date réelle)
+    ├── notes.test.ts         (Bridge) Tests cwdHash, roundtrip bucket, rattachement par fenêtre, rendu section digest
     ├── principles.test.ts    (B) Tests regroupement, confiance, contradiction, polarité dominante
     ├── principle-judge.test.ts (B) Tests signature, éligibilité, réattachement mémoïsé, validation du verdict
     ├── injection.test.ts     (C3) Tests rendu contexte + classifier (+ seuil de score anti-bruit)
@@ -95,4 +103,4 @@ claude-arcade/
     └── session-end.test.ts   (C3) Tests lock de consolidation + trace SessionEnd (ordre, cap)
 ```
 
-État persisté (hors repo, dans `~/.claude/claude-arcade/`) : `state.json`, `sessions/*.json`, `last-consolidation.json`, `auto-watermark.json`, `insights.json`, `graph.json`, `champions.json`, `evolution.json`, `principles.json`, `judgments.json`, `injections.json`, `session-events.json`, `consolidation.lock` (éphémère).
+État persisté (hors repo, dans `~/.claude/claude-arcade/`) : `state.json`, `sessions/*.json`, `last-consolidation.json`, `auto-watermark.json`, `insights.json`, `graph.json`, `champions.json`, `evolution.json`, `principles.json`, `judgments.json`, `injections.json`, `session-events.json`, `consolidation.lock` (éphémère), `session-notes/<cwd-hash>/{notes.jsonl,meta.json,artifacts/}` (Bridge).
