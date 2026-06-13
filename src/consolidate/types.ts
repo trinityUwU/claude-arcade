@@ -43,6 +43,7 @@ export interface SessionSummary extends SummaryFields {
   file: string;
   fingerprint: string;
   model: string;
+  startTs: number; // epoch ms réel de la session, 0 si inconnu (anciens JSON → redaté ou fallback)
   summarizedAt: number;
   schemaVersion: number;
 }

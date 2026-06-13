@@ -13,6 +13,7 @@ export interface TranscriptDigest {
   models: string[];
   messageCount: number;
   text: string;
+  startTs: number; // epoch ms réel de la session (1er timestamp du transcript), 0 si inconnu
 }
 
 const TURN_CHARS = 800; // troncature par bloc de texte
@@ -74,16 +75,20 @@ function capHeadTail(lines: string[], budget: number): string {
 export function digestTranscript(lines: TranscriptLine[]): TranscriptDigest {
   const models = new Set<string>();
   const out: string[] = [];
-  let project = "", sessionId = "", messageCount = 0;
+  let project = "", sessionId = "", messageCount = 0, startTs = 0;
   for (const line of lines) {
     if (line.isSidechain) continue; // les sous-agents ne portent pas le fil principal
     if (!project && line.cwd) project = line.cwd;
     if (!sessionId && line.sessionId) sessionId = line.sessionId;
     if (line.type === "assistant" && line.message?.model) models.add(line.message.model);
     if (line.type !== "user" && line.type !== "assistant") continue;
+    if (!startTs && line.timestamp) {
+      const ts = Date.parse(line.timestamp);
+      if (Number.isFinite(ts) && ts > 0) startTs = ts;
+    }
     messageCount++;
     if (Array.isArray(line.message?.content)) renderBlocks(line, out);
     else renderPlain(line, out);
   }
-  return { project, sessionId, models: [...models], messageCount, text: capHeadTail(out, TOTAL_CHARS) };
+  return { project, sessionId, models: [...models], messageCount, text: capHeadTail(out, TOTAL_CHARS), startTs };
 }

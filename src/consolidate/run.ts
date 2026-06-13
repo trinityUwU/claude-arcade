@@ -64,6 +64,7 @@ async function summarizeOne(file: string, fp: string, model: string): Promise<Se
     project: digest.project || fields.project,
     sessionId: digest.sessionId || basename(file, ".jsonl"),
     file, fingerprint: fp, model,
+    startTs: digest.startTs,
     summarizedAt: Date.now(),
     schemaVersion: SUMMARY_SCHEMA_VERSION,
   };

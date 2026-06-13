@@ -2,7 +2,7 @@
 // système d'apprentissage progresse (recurrence ↓, fitness champions ↑). Déterministe, zéro LLM.
 import type {
   SessionSummary, ChampionsData, EvolutionBucket, EvolutionData,
-  TrendDirection,
+  TrendDirection, SchemaInstance,
 } from "./types.ts";
 import { groupingKey } from "./text-normalize.ts";
 
@@ -25,6 +25,11 @@ function weekKey(start: number): string {
   return `${year}-W${String(week).padStart(2, "0")}`;
 }
 
+/** Date réelle de la session : startTs si capturé, sinon fallback sur summarizedAt (zéro-perte). */
+function realTs(s: SessionSummary): number {
+  return s.startTs && s.startTs > 0 ? s.startTs : s.summarizedAt;
+}
+
 interface RawBucket {
   start: number;
   sessions: SessionSummary[];
@@ -36,9 +41,10 @@ interface RawBucket {
 function computeRecurrence(summaries: SessionSummary[]): Map<string, number> {
   const flat: Array<{ key: string; at: number; week: number }> = [];
   for (const s of summaries) {
+    const at = realTs(s);
     for (const p of s.problems ?? []) {
       const key = groupingKey(p.category);
-      if (key) flat.push({ key, at: s.summarizedAt, week: weekStart(s.summarizedAt) });
+      if (key) flat.push({ key, at, week: weekStart(at) });
     }
   }
   flat.sort((a, b) => a.at - b.at);
@@ -53,11 +59,11 @@ function computeRecurrence(summaries: SessionSummary[]): Map<string, number> {
 
 /** Regroupe les sessions valides en buckets hebdo, comptant problèmes et récurrences. */
 function bucketize(summaries: SessionSummary[]): RawBucket[] {
-  const valid = summaries.filter((s) => s.summarizedAt > 0);
+  const valid = summaries.filter((s) => realTs(s) > 0);
   const recurring = computeRecurrence(valid);
   const by = new Map<number, RawBucket>();
   for (const s of valid) {
-    const start = weekStart(s.summarizedAt);
+    const start = weekStart(realTs(s));
     const b = by.get(start) ?? { start, sessions: [], problems: 0, recurring: recurring.get(`${start}`) ?? 0 };
     b.sessions.push(s);
     b.problems += (s.problems ?? []).filter((p) => groupingKey(p.category)).length;
@@ -66,12 +72,14 @@ function bucketize(summaries: SessionSummary[]): RawBucket[] {
   return [...by.values()].sort((a, b) => a.start - b.start);
 }
 
-/** Moyenne du meilleur fitness connu par catégorie pour les instances `at <= endTime`. */
-function fitnessAt(champions: ChampionsData, endTime: number): number {
+/** Moyenne du meilleur fitness connu par catégorie pour les instances `at <= endTime`.
+ *  `instTs` réinterprète la date d'une instance via la date réelle de session (champions.ts
+ *  positionne `at` sur summarizedAt — on rebase sur startTs pour la chronologie). */
+function fitnessAt(champions: ChampionsData, endTime: number, instTs: (i: SchemaInstance) => number): number {
   const best = new Map<string, number>();
   for (const cat of champions.categories) {
     for (const inst of cat.contenders) {
-      if (inst.at > endTime) continue;
+      if (instTs(inst) > endTime) continue;
       best.set(cat.category, Math.max(best.get(cat.category) ?? -Infinity, inst.fitness));
     }
   }
@@ -87,7 +95,9 @@ function difficultyOf(sessions: SessionSummary[]): EvolutionBucket["difficulty"]
   return d;
 }
 
-function toBucket(raw: RawBucket, champions: ChampionsData): EvolutionBucket {
+function toBucket(
+  raw: RawBucket, champions: ChampionsData, instTs: (i: SchemaInstance) => number,
+): EvolutionBucket {
   const n = raw.sessions.length;
   const end = raw.start + 7 * DAY - 1;
   const avgQuality = Math.round(raw.sessions.reduce((a, s) => a + s.quality_score, 0) / n);
@@ -100,9 +110,16 @@ function toBucket(raw: RawBucket, champions: ChampionsData): EvolutionBucket {
     problems: raw.problems,
     recurringProblems: raw.recurring,
     recurrenceRate,
-    avgChampionFitness: fitnessAt(champions, end),
+    avgChampionFitness: fitnessAt(champions, end, instTs),
     difficulty: difficultyOf(raw.sessions),
   };
+}
+
+/** Date réelle d'une instance de schéma via sa session (fallback sur le `at` figé par champions.ts). */
+function instTsFactory(summaries: SessionSummary[]): (i: SchemaInstance) => number {
+  const bySession = new Map<string, number>();
+  for (const s of summaries) bySession.set(s.sessionId, realTs(s));
+  return (inst) => bySession.get(inst.sessionId) ?? inst.at;
 }
 
 /** Tendance entre premier et dernier bucket selon une marge ; `higherIsBetter` inverse le sens. */
@@ -128,7 +145,8 @@ function globalFitness(champions: ChampionsData): number {
 }
 
 export function buildEvolution(summaries: SessionSummary[], champions: ChampionsData): EvolutionData {
-  const buckets = bucketize(summaries).map((raw) => toBucket(raw, champions));
+  const instTs = instTsFactory(summaries);
+  const buckets = bucketize(summaries).map((raw) => toBucket(raw, champions, instTs));
   const enough = buckets.length >= 2;
   const first = buckets[0];
   const last = buckets[buckets.length - 1];
