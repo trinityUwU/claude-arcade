@@ -42,7 +42,7 @@ function collect(summaries: SessionSummary[], log: InjectionLog): Map<string, Ra
       const raw = groups.get(key) ?? { label, encounters: [] };
       raw.encounters.push({
         sessionId: s.sessionId, project: s.project, at: realTs(s),
-        fitness: computeFitness(p.resolution_schema, s.quality_score),
+        fitness: computeFitness(p.resolution_schema, s.quality_score, p.severity),
         turns: p.resolution_schema.turns_to_resolve,
         backtracks: p.resolution_schema.backtracks,
         outcome: p.resolution_schema.outcome,

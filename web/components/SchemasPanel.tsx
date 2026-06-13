@@ -7,8 +7,8 @@ import { fitnessColor, fitnessBg, OutcomeBadge, SeverityBadge, SectionHeader } f
 import { PanelMessage } from "./SessionsPanel.tsx";
 
 const BAR_ROWS: { key: keyof Pick<FitnessBreakdown, "turns" | "backtracks" | "toolErrors" | "quality">; label: string }[] = [
-  { key: "turns", label: "tours (0.35)" },
-  { key: "backtracks", label: "retours (0.25)" },
+  { key: "turns", label: "tours / budget (0.35)" },
+  { key: "backtracks", label: "retours / budget (0.25)" },
   { key: "toolErrors", label: "err. outils (0.20)" },
   { key: "quality", label: "qualité (0.20)" },
 ];
@@ -36,7 +36,7 @@ function FitnessBars({ bd }: { bd: FitnessBreakdown }): React.JSX.Element {
 
 function SchemaCard({ c, isChampion }: { c: SchemaInstance; isChampion: boolean }): React.JSX.Element {
   const rs = c.resolution;
-  const bd = fitnessBreakdown(rs, c.sessionQuality);
+  const bd = fitnessBreakdown(rs, c.sessionQuality, c.severity);
   return (
     <div className={`rounded-xl border p-4 ${isChampion
       ? "border-fuchsia-400/30 bg-fuchsia-400/[0.04]" : "border-white/[0.07] bg-white/[0.02]"}`}>
@@ -169,7 +169,7 @@ export function SchemasPanel(): React.JSX.Element {
         <div>
           <h1 className="text-lg font-bold tracking-tight text-white/90">Schémas</h1>
           <p className="text-[12px] text-white/45">
-            Le champion est le schéma de résolution élu par fitness — moins de tours, retours et erreurs.
+            Le champion est élu par fitness — effort (tours, retours) rapporté au budget de la sévérité, pas à la facilité.
           </p>
         </div>
       </header>

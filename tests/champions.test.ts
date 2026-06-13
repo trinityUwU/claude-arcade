@@ -36,9 +36,26 @@ test("computeFitness : schéma parfait approche 1", () => {
 });
 
 test("computeFitness : schéma médiocre est bas", () => {
-  const f = computeFitness(schema({ turns_to_resolve: 5, backtracks: 3, tool_errors: 4, outcome: "resolved" }), 30);
+  // trivial qui dérape largement hors budget (10 tours, 6 retours) + basse qualité
+  const f = computeFitness(schema({ turns_to_resolve: 10, backtracks: 6, tool_errors: 4, outcome: "resolved" }), 30, "trivial");
   expect(f).toBeLessThan(0.4);
   expect(f).toBeGreaterThan(0);
+});
+
+test("computeFitness : ancrée sur la difficulté — un major résolu dans son budget n'est pas pénalisé", () => {
+  // même schéma (6 tours, 2 retours) jugé comme trivial vs major
+  const rs = schema({ turns_to_resolve: 6, backtracks: 2, tool_errors: 0, outcome: "resolved" });
+  const asTrivial = computeFitness(rs, 80, "trivial"); // très au-dessus du budget trivial → pénalisé
+  const asMajor = computeFitness(rs, 80, "major");     // dans l'enveloppe d'un major → plein effort
+  expect(asMajor).toBeGreaterThan(asTrivial);
+  expect(asMajor).toBeGreaterThan(0.7); // bien résolu compte tenu de la difficulté
+});
+
+test("computeFitness : un major dans son budget égale un trivial parfait (effort plein des deux côtés)", () => {
+  const majorOk = computeFitness(schema({ turns_to_resolve: 8, backtracks: 3 }), 100, "major");
+  const trivialOk = computeFitness(schema({ turns_to_resolve: 1, backtracks: 0 }), 100, "trivial");
+  expect(majorOk).toBeCloseTo(trivialOk, 5);
+  expect(majorOk).toBeCloseTo(1, 5);
 });
 
 test("computeFitness : outcome unresolved → 0", () => {

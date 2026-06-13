@@ -28,12 +28,13 @@ Prouver que ça apprend. Tracer injection→session→delta, mesurer, afficher l
 - [x] Écran « Apprentissage » en tête du groupe (KPI causaux + sparkline par classe). `learning.json`, `/api/learning`.
 - [x] 6 tests learning (89 total) + tsc 0 + E2E réel (2 classes récurrentes, 0 erreur console).
 
-### PHASE 4 — Fitness ancrée sur les résultats
-Arrêter de deviner les poids. Un champion vaut par son impact réel mesuré en Phase 3, pas par sa facilité.
-- [ ] Redéfinir fitness : intégrer « a évité une erreur connue » / « a tenu dans les sessions suivantes ».
-- [ ] Recalibrer l'élection sur les deltas réels.
-- [ ] Boucle complète : apprendre → mesurer → réélire → mieux injecter.
-- [ ] Tests + tsc 0 + E2E réel.
+### PHASE 4 — Fitness ancrée sur les résultats — LIVRÉ
+Arrêter de récompenser la facilité. Un champion vaut par sa qualité de résolution RELATIVE à la difficulté.
+- [x] Redéfinir fitness : effort (tours/retours) normalisé par budget de sévérité (`SEVERITY_BUDGET`). Major dans son enveloppe = plein score.
+- [x] Élection recalibrée : `champions.ts`/`learning.ts` passent `p.severity`. `SchemasPanel` reflète (labels budget).
+- [x] Durabilité « a tenu dans les sessions suivantes » = mesurée par la courbe Phase 3 (trend), pas réinjectée (zéro boucle champions↔learning).
+- [x] 3 tests fitness severity-aware (91 total) + tsc 0 + E2E réel (0 erreur console).
+- [ ] Extension future (hors scope) : prioriser l'INJECTION par signal de courbe (lift/besoin de classe) sans toucher l'élection.
 
 ## Garde-fous permanents (North Star)
 - Temps réel : SessionEnd consolide immédiatement (1 passe). Backfill = manuel only via l'app.

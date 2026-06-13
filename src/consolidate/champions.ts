@@ -16,7 +16,7 @@ function toInstance(s: SessionSummary, p: Problem): SchemaInstance {
     category: p.category,
     severity: p.severity,
     resolution: p.resolution_schema,
-    fitness: computeFitness(p.resolution_schema, s.quality_score),
+    fitness: computeFitness(p.resolution_schema, s.quality_score, p.severity),
     sessionQuality: s.quality_score,
     at: s.summarizedAt,
   };

@@ -3,6 +3,13 @@
 
 > **NORTH STAR** (`docs/NORTH-STAR.md`, immuable) : organe d'apprentissage continu temps réel sur Claude Code. Critère unique = courbe d'apprentissage PROUVÉE (session N+1 > N). Zéro modèle local, backfill manuel only, intégration via hooks, demande visuelle = graphiques de résolution. Plan magistral 4 phases dans TODO.md.
 
+## Session 2026-06-13 (suite) — PHASE 4 : FITNESS ANCRÉE SUR LES RÉSULTATS (LIVRÉ)
+Corrige le biais de fond : l'ancienne fitness récompensait la FACILITÉ (1/tours) → un problème dur bien résolu perdait contre un trivial.
+- `fitness.ts` : effort (tours, retours) désormais normalisé par un BUDGET de sévérité (`SEVERITY_BUDGET` trivial 1/0, minor 3/1, major 8/3). `parts.turns = 0.35·min(1, budget/tours)`, idem retours. Plein score si dans l'enveloppe attendue, dégradation au-delà. Borné [0,1]. `computeFitness`/`fitnessBreakdown` prennent `severity` (défaut "minor" → rétro-compat). Erreurs d'outil + qualité inchangées (indépendantes de la difficulté).
+- Propagé : `champions.ts` et `learning.ts` passent `p.severity`. `SchemasPanel` passe `c.severity` + labels « tours / budget » + sous-titre.
+- **Pas de boucle** : la fitness reste pure (severity = donnée d'instance). La durabilité « a tenu dans les sessions suivantes » est mesurée séparément par la courbe Phase 3 (trend), pas réinjectée dans la fitness (éviterait la dépendance circulaire champions↔learning).
+- 3 nouveaux tests (major dans budget non pénalisé, major=trivial parfait à effort plein, médiocre hors budget bas). 91 tests, tsc 0, E2E réel (rebuild, Schémas rendus, 0 erreur console).
+
 ## Session 2026-06-13 (suite) — PHASE 3 : BOUCLE DE FEEDBACK + COURBE D'APPRENTISSAGE (LIVRÉ)
 Le cœur du North Star : PROUVER que l'exécution progresse (session N+1 > N), pas le supposer.
 - `learning.ts` (déterministe, zéro LLM) : pour chaque classe canonique vue 2+ fois, reconstruit la trajectoire chronologique des résolutions (fitness, tours, outcome). **Attribution causale d'injection** par cwd + fenêtre temporelle (même mécanisme que le bridge de notes) : une rencontre est `injected` si une injection de cette classe a touché le projet pendant la session. `injectionLift` = fitness moyen injecté − non injecté = la mesure causale de l'impact du PUSH (null si un groupe vide). Agrégats : recurringClasses, improving/worsening, avgFitnessDelta, avgTurnsDelta.
