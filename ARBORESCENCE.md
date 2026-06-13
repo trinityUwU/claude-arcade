@@ -84,7 +84,8 @@ claude-arcade/
 │   │   └── icons.tsx         Mapping noms/catégories → icônes Lucide (zéro emoji)
 │   ├── lib/format.tsx        Helpers partagés panneaux : badges (outcome/severity/difficulty), couleurs sémantiques, dates
 │   └── components/           Sidebar.tsx (nav 2 groupes : Arcade/Apprentissage) · Topbar.tsx · BadgeCard.tsx
-│                             · BrainGraph.tsx (graphe Obsidian 2D, clic→détail) · NodeDetail.tsx (résumé + transcript)
+│                             · BrainGraph.tsx (graphe Obsidian 2D, clic→détail) · NodeDetail.tsx (drawer nœud du graphe)
+│                             · SessionDetail.tsx (partagé : résumé session + transcript repliable + SessionDrawer latéral réutilisable)
 │                             · ConsolidatePanel.tsx (déclenchement manuel : presets + quota libre + progression + stop)
 │                             · LearningPanel.tsx (P3 « Apprentissage » : KPI causaux + lift d'injection + sparkline par classe — la preuve)
 │                             · SessionsPanel.tsx (difficulté + problèmes + resolution_schema) · ProblemsPanel.tsx (catégories/sévérité)

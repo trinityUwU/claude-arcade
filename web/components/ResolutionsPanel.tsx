@@ -2,12 +2,18 @@
 // GRAPHIQUE(S) de résolution. Champion mis en avant + approches concurrentes côte à côte →
 // on compare visuellement les chemins, on voit lequel a gagné. Complète l'onglet Schémas (fitness/barres).
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { GitBranch } from "lucide-react";
-import type { ChampionsData, ChampionEntry, CanonicalRegistry } from "../../src/consolidate/types.ts";
+import type { ChampionsData, ChampionEntry, CanonicalRegistry, SchemaInstance } from "../../src/consolidate/types.ts";
 import { SectionHeader, SourceBadge } from "../lib/format.tsx";
 import { ResolutionFlow } from "./ResolutionFlow.tsx";
+import { SessionDrawer } from "./SessionDetail.tsx";
 import { PanelMessage } from "./SessionsPanel.tsx";
+
+type OpenSession = { sessionId: string; title: string; topic: string };
+function asOpen(c: SchemaInstance): OpenSession {
+  return { sessionId: c.sessionId, title: c.topic || c.description, topic: c.description };
+}
 
 function ClassList({ entries, selected, onPick }:
   { entries: ChampionEntry[]; selected: string; onPick: (cat: string) => void }): React.JSX.Element {
@@ -43,8 +49,8 @@ function SourceSummary({ entry }: { entry: ChampionEntry }): React.JSX.Element |
   );
 }
 
-function ClassDetail({ entry, definition }:
-  { entry: ChampionEntry; definition: string | null }): React.JSX.Element {
+function ClassDetail({ entry, definition, onOpen }:
+  { entry: ChampionEntry; definition: string | null; onOpen: (c: SchemaInstance) => void }): React.JSX.Element {
   const others = entry.champion
     ? entry.contenders.filter((c) => c !== entry.champion)
     : [...entry.contenders];
@@ -61,7 +67,7 @@ function ClassDetail({ entry, definition }:
       {entry.champion && (
         <ResolutionFlow rs={entry.champion.resolution} title={entry.champion.description}
           isChampion fitness={entry.champion.fitness} project={entry.champion.project}
-          at={entry.champion.at} topic={entry.champion.topic} />
+          at={entry.champion.at} topic={entry.champion.topic} onOpen={() => onOpen(entry.champion!)} />
       )}
       {others.length === 0 && entry.champion && (
         <p className="mt-2 text-[12px] italic text-white/40">
@@ -74,7 +80,8 @@ function ClassDetail({ entry, definition }:
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3">
             {others.sort((a, b) => b.fitness - a.fitness).map((c) => (
               <ResolutionFlow key={`${c.sessionId}:${c.problemId}`} rs={c.resolution}
-                title={c.description} fitness={c.fitness} project={c.project} at={c.at} topic={c.topic} />
+                title={c.description} fitness={c.fitness} project={c.project} at={c.at} topic={c.topic}
+                onOpen={() => onOpen(c)} />
             ))}
           </div>
         </div>
@@ -88,6 +95,7 @@ export function ResolutionsPanel(): React.JSX.Element {
   const [registry, setRegistry] = useState<CanonicalRegistry | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string>("");
+  const [open, setOpen] = useState<OpenSession | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -119,13 +127,13 @@ export function ResolutionsPanel(): React.JSX.Element {
   const active = sorted.find((e) => e.category === selected) ?? sorted[0];
   if (!active) return <PanelMessage text="Aucune résolution capturée pour l'instant." />;
   return (
-    <div className="flex flex-1 flex-col overflow-hidden px-8 py-6">
+    <div className="relative flex flex-1 flex-col overflow-hidden px-8 py-6">
       <header className="mb-4 flex items-center gap-3">
         <GitBranch size={20} strokeWidth={1.75} className="text-fuchsia-200" />
         <div>
           <h1 className="text-lg font-bold tracking-tight text-white/90">Résolutions</h1>
           <p className="text-[12px] text-white/45">
-            Le chemin de résolution de chaque classe de problème, en graphique — champion et approches concurrentes.
+            Le chemin de résolution de chaque classe de problème, en graphique — clique une carte pour ouvrir sa session source.
           </p>
         </div>
       </header>
@@ -133,9 +141,16 @@ export function ResolutionsPanel(): React.JSX.Element {
         <ClassList entries={sorted} selected={active.category} onPick={setSelected} />
         <motion.div key={active.category} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25 }} className="min-w-0 flex-1 overflow-y-auto pr-1">
-          <ClassDetail entry={active} definition={defByClass.get(active.category) ?? null} />
+          <ClassDetail entry={active} definition={defByClass.get(active.category) ?? null}
+            onOpen={(c) => setOpen(asOpen(c))} />
         </motion.div>
       </div>
+      <AnimatePresence>
+        {open && (
+          <SessionDrawer key={open.sessionId} sessionId={open.sessionId} title={open.title}
+            subtitle={open.topic} onClose={() => setOpen(null)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

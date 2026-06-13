@@ -2,7 +2,7 @@
 // timeline verticale (nœuds reliés), pas une liste de texte. Le texte des étapes reste, mais
 // devient visuel : on voit la séquence, les outils, les retours/erreurs et l'issue d'un coup d'œil.
 import { motion } from "framer-motion";
-import { Check, CircleDashed, X, CornerDownLeft, TriangleAlert, Crown, Wrench } from "lucide-react";
+import { Check, CircleDashed, X, CornerDownLeft, TriangleAlert, Crown, Wrench, PanelRightOpen } from "lucide-react";
 import type { ResolutionSchema, ResolutionOutcome } from "../../src/consolidate/types.ts";
 import { OutcomeBadge, SourceBadge } from "../lib/format.tsx";
 
@@ -60,22 +60,31 @@ function OutcomeNode({ outcome }: { outcome: ResolutionOutcome }): React.JSX.Ele
   );
 }
 
-export function ResolutionFlow({ rs, title, isChampion, fitness, project, at, topic }:
+export function ResolutionFlow({ rs, title, isChampion, fitness, project, at, topic, onOpen }:
   { rs: ResolutionSchema; title?: string; isChampion?: boolean; fitness?: number;
-    project?: string; at?: number; topic?: string }): React.JSX.Element {
+    project?: string; at?: number; topic?: string; onOpen?: () => void }): React.JSX.Element {
+  const clickable = !!onOpen;
   return (
-    <div className={`rounded-xl border p-4 ${isChampion
-      ? "border-fuchsia-400/30 bg-fuchsia-400/[0.04]" : "border-white/[0.07] bg-white/[0.02]"}`}>
+    <div onClick={onOpen}
+      title={clickable ? "Ouvrir la session source" : undefined}
+      className={`group rounded-xl border p-4 transition-colors ${isChampion
+        ? "border-fuchsia-400/30 bg-fuchsia-400/[0.04]" : "border-white/[0.07] bg-white/[0.02]"}
+        ${clickable ? "cursor-pointer hover:border-fuchsia-400/40 hover:bg-white/[0.04]" : ""}`}>
       {title && (
         <div className="mb-2 flex items-start justify-between gap-2">
           <div className="flex items-start gap-2">
             {isChampion && <Crown size={15} strokeWidth={2} className="mt-0.5 shrink-0 text-fuchsia-200" />}
             <p className="text-[12.5px] font-medium leading-snug text-white/85">{title}</p>
           </div>
-          {fitness !== undefined && (
-            <span className="shrink-0 rounded-md border border-white/10 bg-white/[0.03] px-1.5 py-0.5
-              text-[10px] tabular-nums text-white/55">fit {fitness.toFixed(3)}</span>
-          )}
+          <div className="flex shrink-0 items-center gap-1.5">
+            {fitness !== undefined && (
+              <span className="rounded-md border border-white/10 bg-white/[0.03] px-1.5 py-0.5
+                text-[10px] tabular-nums text-white/55">fit {fitness.toFixed(3)}</span>
+            )}
+            {clickable && (
+              <PanelRightOpen size={14} className="text-white/25 transition-colors group-hover:text-fuchsia-200/80" />
+            )}
+          </div>
         </div>
       )}
       {project !== undefined && (

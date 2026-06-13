@@ -3,6 +3,12 @@
 
 > **NORTH STAR** (`docs/NORTH-STAR.md`, immuable) : organe d'apprentissage continu temps réel sur Claude Code. Critère unique = courbe d'apprentissage PROUVÉE (session N+1 > N). Zéro modèle local, backfill manuel only, intégration via hooks, demande visuelle = graphiques de résolution. Plan magistral 4 phases dans TODO.md.
 
+## Session 2026-06-13 (suite) — CARTES DE RÉSOLUTION CLIQUABLES → SESSION SOURCE (LIVRÉ)
+Remonter du schéma à la conversation d'origine en un clic.
+- Extraction de la logique détail-session de `NodeDetail.tsx` vers `SessionDetail.tsx` partagé (résumé `/api/session/:id` + transcript repliable `/api/transcript/:id`) + `SessionDrawer` (panneau latéral réutilisable). NodeDetail refactoré (zéro duplication).
+- `ResolutionFlow` : prop `onOpen` → carte cliquable (cursor, hover fuchsia, icône PanelRightOpen). `ResolutionsPanel` : état `open` + `SessionDrawer` (AnimatePresence) ; titre = sujet de session, sous-titre = problème.
+- Validé E2E réel : clic carte « workflow edition fichier » → drawer (qualité 72, wins/erreurs/décisions/tags echo-trading) → « Voir le transcript » → tours Chris/Claude rendus. 91 tests, tsc 0, 0 page-error.
+
 ## Session 2026-06-13 (suite) — PROVENANCE DES RÉSOLUTIONS (LIVRÉ)
 Retour Chris : on ne voyait pas à quoi une résolution était liée (projet, cible, contexte). Ajout de la traçabilité de source.
 - `SchemaInstance` gagne `topic` (sujet de session, propagé par `champions.ts`). `format.tsx` : `SourceBadge` (basename du cwd + date + icône par famille : Boxes=/mnt/projects, Target=bug bounty/cible, Folder=autre, tooltip=chemin complet).
