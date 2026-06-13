@@ -1,6 +1,21 @@
 # STATE — claude-arcade
 *Dernière mise à jour : 2026-06-13*
 
+> **NORTH STAR** (`docs/NORTH-STAR.md`, immuable) : organe d'apprentissage continu temps réel sur Claude Code. Critère unique = courbe d'apprentissage PROUVÉE (session N+1 > N). Zéro modèle local, backfill manuel only, intégration via hooks, demande visuelle = graphiques de résolution. Plan magistral 4 phases dans TODO.md.
+
+## Session 2026-06-13 (suite) — PHASE 2 : GRAPHIQUES DE RÉSOLUTION (LIVRÉ)
+Réponse à la demande visuelle de Chris : pour chaque classe de problème, le CHEMIN de résolution en graphique, pas que du texte. Le texte des étapes est conservé mais devient visuel.
+- `ResolutionFlow.tsx` : timeline verticale (rail continu coloré par outcome, nœuds d'étapes numérotés, nœud terminal = issue résolu/partiel/non-résolu, outils en pied, métriques tours/retours/erreurs avec teinte d'alerte). Framer Motion (apparition séquentielle stagger).
+- `ResolutionsPanel.tsx` : onglet « Résolutions » (nav Apprentissage). Liste des classes canoniques à gauche ; à droite le champion en avant (couronne + fitness) + définition canonique + approches concurrentes en grille côte à côte → comparaison visuelle des chemins. Charge `/api/champions` + `/api/canonical`.
+- Câblé : `View` + Sidebar (icône GitBranch) + ViewRouter. tsc 0, E2E Playwright (rendu conforme, assert « Approches concurrentes », 0 erreur console sur load propre).
+
+## Session 2026-06-13 (suite) — PHASE 1 : MATCHING CANONIQUE DES PROBLÈMES (LIVRÉ)
+Reconnaître le « même problème » entre sessions/projets SANS modèle local. Le `claude -p` de consolidation (déjà payé, 1×/session) range chaque problème dans une taxonomie canonique évolutive. Remplace le classifier token-overlap.
+- `canonical.ts` : registre `canonical-classes.json` (id, nom, définition de CLASSE, occurrences) + `resolveCanonical` déterministe (rattache par id puis par nom normalisé, sinon crée) + `problemKey` (canonicalClassId sinon fallback groupingKey → rétro-compat v1-v3).
+- `summary-prompt.ts` v3→v4 : index borné des classes existantes injecté ; le LLM assigne chaque problème à une classe existante (réutilise l'id) ou en propose une nouvelle. `parse.ts` lit `canonical_class`, hint consommé puis retiré.
+- `champions.ts` + `evolution.ts` regroupent par `problemKey` (au lieu de `groupingKey(category)`) ; labels = noms canoniques. `run.ts` charge/résout/persiste le registre dans `summarizeOne`. `/api/canonical`.
+- Validé E2E réel (1 session consolidée, 1 passe) : 4 classes créées avec définitions génériques de classe, `canonicalClassId` rattaché, hint absent du JSON persisté. 8 tests canonical (83 total), tsc 0, 0 erreur console.
+
 ## Session 2026-06-13 (suite) — VUE « SKILLS LES PLUS UTILISÉS » (LIVRÉ)
 Onglet « Skills » (groupe Arcade), demandé par Chris. Déterministe, zéro token LLM. Le scanner capture désormais le NOM du skill (`input.skill` du tool Skill) par session (`metrics.ts` → `SessionStats.skills`), `rankSkills` (aggregate.ts) classe par invocations totales puis sessions distinctes, exposé via `ScanResult.topSkills` + `/api/skills`. `SkillsPanel.tsx` : barres proportionnelles (rang, nom mono, count, sessions). `CACHE_VERSION` 1→2 pour forcer un re-parse complet (sinon les sessions en cache n'ont pas le nom de skill). Validé E2E réel : 20 skills, end-session 21×/20 sessions, autonomous-dev 14×, humanizer 8×. 75/75 tests, tsc 0, Playwright 0 page-error.
 

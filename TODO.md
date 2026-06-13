@@ -14,7 +14,7 @@ Reconnaître le « même problème » entre sessions/projets sans modèle local.
 - [ ] Injection (hooks) = lookup déterministe par classe canonique + projet. Zéro token runtime.
 - [ ] Tests + tsc 0 + E2E réel.
 
-### PHASE 2 — Graphiques de résolution (couche visuelle)
+### PHASE 2 — Graphiques de résolution (couche visuelle) — LIVRÉ
 Demande explicite Chris : pour chaque problème, le schéma VISUEL de sa résolution, pas que du texte. Texte gardé, visuel ajouté.
 - [ ] Schéma par résolution : chemin étape→étape→outil, backtracks en rouge, issue. Rendu DAG.
 - [ ] Vue par classe canonique : superposition des chemins de toutes les sessions → champion vs concurrents visibles + évolution dans le temps.
