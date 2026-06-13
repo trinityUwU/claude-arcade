@@ -8,6 +8,9 @@ claude-arcade/
 ├── .env.example              ARCADE_PORT, CLAUDE_HOME, ARCADE_STATE_DIR
 ├── start.sh / stop.sh / restart.sh   Gestion serveur + PID + reset logs
 ├── README.md / STATE.md / TODO.md    Docs norme
+├── docs/
+│   ├── NORTH-STAR.md        Vision directrice immuable (apprentissage continu, critère N+1>N, contraintes dures)
+│   └── VISION.md            Architecture cible Consolidation & Brain (4 couches, PUSH vs PULL)
 ├── src/
 │   ├── types.ts              Types partagés (Achievement, Aggregate, ScanResult, ScoreSummary…)
 │   ├── logger.ts             Logger pino + pino-pretty
@@ -25,29 +28,31 @@ claude-arcade/
 │   │   ├── store.ts          Bucket par cwd (hash sha1) : notes.jsonl append-only + artifacts/ (copie durable)
 │   │   └── arcade-note.ts    CLI canal d'écriture : `arcade-note <kind> "<texte>" [--artifact path] [--tag t]`
 │   ├── consolidate/          Couches 1-3 — résumés, insights, évolution darwinienne
-│   │   ├── types.ts          SummaryFields(+difficulty,problems), SessionSummary(+startTs), Champions/Evolution/Injection
+│   │   ├── types.ts          SummaryFields(+difficulty,problems,canonicalClassId), SessionSummary, Canonical/Champions/Evolution/Learning/Injection
 │   │   ├── transcript-digest.ts  Réduit un transcript → digest texte borné (16k) + capture startTs/endTs réels
 │   │   ├── session-notes.ts  (Bridge) Rattache les notes du cwd par fenêtre [startTs,endTs] + rend la section digest haute fiabilité
-│   │   ├── summary-prompt.ts Prompt TIDD-EC v2 : extrait difficulté + problèmes + resolution_schema (JSON stable)
-│   │   ├── summarize.ts      Spawn `claude -p` isolé (zéro MCP, plan, sonnet cloud)
-│   │   ├── parse.ts          Extraction + validation robustes du JSON LLM v2 + rétro-compat v1 (testé)
-│   │   ├── store.ts          Persistance résumés/insights/graphe/champions/evolution/injections + index idempotent + watermark
-│   │   ├── run.ts            Orchestrateur : runConsolidation(...) + consolidateSession(file) + countPending + rebuild C2/C3
+│   │   ├── summary-prompt.ts Prompt TIDD-EC v4 : difficulté + problèmes + resolution_schema + classe canonique (index injecté) + principes
+│   │   ├── canonical.ts      (P1) Registre de classes canoniques + resolveCanonical déterministe + problemKey (reconnaît le même problème cross-projet)
+│   │   ├── summarize.ts      Spawn `claude -p` isolé (zéro MCP, plan, sonnet cloud) ; passe l'index canonique au prompt
+│   │   ├── parse.ts          Extraction + validation robustes du JSON LLM v4 (+canonical_class hint) + rétro-compat v1-v3 (testé)
+│   │   ├── store.ts          Persistance résumés/insights/graphe/champions/evolution/canonical/learning/injections + index idempotent + watermark
+│   │   ├── run.ts            Orchestrateur : runConsolidation(...) + consolidateSession(file) + countPending + rebuild C2/C3 (+learning)
 │   │   ├── consolidate-session.ts (C3) Worker détaché : consolide UNE session terminée (lock → conso ciblée → trace). Lancé par le hook SessionEnd
 │   │   ├── job.ts            Job singleton anti-concurrent (déclenchement manuel app) : progression live + stop
 │   │   ├── text-normalize.ts (C2) Normalisation + clé de regroupement (récurrence, catégories)
 │   │   ├── insights.ts       (C2) Bilans projet, erreurs/process récurrents, notions
 │   │   ├── graph.ts          (C2) Graphe écosystème Obsidian : nœuds + arêtes + santé
-│   │   ├── fitness.ts        (C3) Fitness composite auto d'un schéma + breakdown pondéré (UI)
-│   │   ├── champions.ts      (C3) Regroupement par catégorie, élection champion par fitness, lignée
+│   │   ├── fitness.ts        (C3/P4) Fitness composite — effort normalisé par budget de sévérité (ancrée sur la difficulté, pas la facilité) + breakdown
+│   │   ├── learning.ts       (P3) Boucle de feedback : trajectoire fitness par classe récurrente + injectionLift causal (cwd+fenêtre) — la PREUVE N+1>N
+│   │   ├── champions.ts      (C3) Regroupement par classe canonique (problemKey), élection champion par fitness, lignée
 │   │   ├── principles.ts     (B) Regroupe les process de pensée par domaine, confiance (1-1/(1+occ)), contradictions, signature + réattache les verdicts
 │   │   ├── judge-prompt.ts   (B) Prompt comparatif : pour/contre + puissance des approches concurrentes d'un domaine (JSON strict)
 │   │   ├── principle-judge.ts (B) Juge LLM : compare les approches d'un domaine éligible (2+ énoncés), mémoïsé par signature, jamais en consolidation
 │   │   ├── judge-job.ts      (B) Job singleton du jugement (déclenchement manuel app : statut/start/stop)
-│   │   ├── evolution.ts      (C3) Buckets hebdo sur date réelle : recurrence_rate ↓ + fitness ↑ + tendances
+│   │   ├── evolution.ts      (C3) Buckets hebdo sur date réelle : recurrence_rate (par classe canonique) ↓ + fitness ↑ + tendances
 │   │   ├── champion-context.ts (C3/PUSH) Rendu markdown borné d'un champion → contexte injectable
 │   │   ├── principle-context.ts (B/PUSH) Rendu markdown borné des principes (globaux, cross-projet) → contexte injectable
-│   │   ├── classifier.ts     (C3/PUSH) Texte libre → catégories pertinentes (recouvrement de tokens)
+│   │   ├── classifier.ts     (C3/PUSH) Texte libre → catégories pertinentes (recouvrement sur le vocabulaire canonique)
 │   │   ├── redate-summaries.ts (C3) Migration zéro-token : redate les résumés via leur transcript + rebuild
 │   │   ├── transcript-view.ts Transcript nettoyé pour le panneau de détail (anti-bruit harness)
 │   │   ├── cli.ts            `bun run consolidate` — manuel (tout backlog) ou auto (ARCADE_AUTO=1 → watermark, zéro rattrapage)
@@ -64,7 +69,7 @@ claude-arcade/
 │   │   ├── score.ts          Score global, rang, agrégats par catégorie
 │   │   └── state.ts          state.json local : unlocks + recent + détection nouveaux paliers · stateDir() (~/.claude/claude-arcade)
 │   ├── server/
-│   │   ├── api.ts            Bun.serve port 4317 : front + API + SSE + endpoints /api/consolidate(/status|/stop)
+│   │   ├── api.ts            Bun.serve port 4317 : front + API + SSE + endpoints /api/{canonical,learning,consolidate(/status|/stop)…}
 │   │   └── watch.ts          Surveille ~/.claude/projects → déclenche rescan auto sur activité
 ├── bin/
 │   └── arcade-note           Wrapper bash du CLI de notes (symlink ~/.local/bin/arcade-note → appelable partout)
@@ -81,8 +86,10 @@ claude-arcade/
 │   └── components/           Sidebar.tsx (nav 2 groupes : Arcade/Apprentissage) · Topbar.tsx · BadgeCard.tsx
 │                             · BrainGraph.tsx (graphe Obsidian 2D, clic→détail) · NodeDetail.tsx (résumé + transcript)
 │                             · ConsolidatePanel.tsx (déclenchement manuel : presets + quota libre + progression + stop)
+│                             · LearningPanel.tsx (P3 « Apprentissage » : KPI causaux + lift d'injection + sparkline par classe — la preuve)
 │                             · SessionsPanel.tsx (difficulté + problèmes + resolution_schema) · ProblemsPanel.tsx (catégories/sévérité)
-│                             · SchemasPanel.tsx (champion + breakdown fitness en barres) · EvolutionPanel.tsx (signaux + courbe SVG)
+│                             · SchemasPanel.tsx (champion + breakdown fitness severity-aware en barres) · EvolutionPanel.tsx (signaux + courbe SVG)
+│                             · ResolutionFlow.tsx (P2 timeline verticale d'un chemin de résolution) · ResolutionsPanel.tsx (P2 « Résolutions » : champion vs concurrents par classe)
 │                             · PrinciplesPanel.tsx (B : domaines de pensée, énoncé dominant, barre de confiance, contradictions)
 │                             · InjectionsPanel.tsx (trace des injections PUSH) · SessionEndPanel.tsx (« Temps réel » : consolidations à la volée)
 │                             · SkillsPanel.tsx (« Skills » : classement des skills les plus utilisés, barres proportionnelles)
@@ -94,7 +101,9 @@ claude-arcade/
     ├── metrics.test.ts       Tests unitaires scanner + engine (fixtures inline) + rankSkills (classement skills)
     ├── parse.test.ts         Tests robustesse parseur JSON LLM v2
     ├── insights.test.ts      (C2) Tests insights / récurrence
-    ├── champions.test.ts     (C3) Tests fitness composite + élection champion + lignée
+    ├── champions.test.ts     (C3/P4) Tests fitness severity-aware + élection champion + lignée
+    ├── canonical.test.ts     (P1) Tests resolveCanonical (rattache/crée), problemKey, index canonique
+    ├── learning.test.ts      (P3) Tests trajectoire par classe, attribution d'injection, injectionLift causal
     ├── evolution.test.ts     (C3) Tests buckets, recurrence, tendances (date réelle)
     ├── notes.test.ts         (Bridge) Tests cwdHash, roundtrip bucket, rattachement par fenêtre, rendu section digest
     ├── principles.test.ts    (B) Tests regroupement, confiance, contradiction, polarité dominante
@@ -104,4 +113,4 @@ claude-arcade/
     └── session-end.test.ts   (C3) Tests lock de consolidation + trace SessionEnd (ordre, cap)
 ```
 
-État persisté (hors repo, dans `~/.claude/claude-arcade/`) : `state.json`, `sessions/*.json`, `last-consolidation.json`, `auto-watermark.json`, `insights.json`, `graph.json`, `champions.json`, `evolution.json`, `principles.json`, `judgments.json`, `injections.json`, `session-events.json`, `consolidation.lock` (éphémère), `session-notes/<cwd-hash>/{notes.jsonl,meta.json,artifacts/}` (Bridge).
+État persisté (hors repo, dans `~/.claude/claude-arcade/`) : `state.json`, `sessions/*.json`, `last-consolidation.json`, `auto-watermark.json`, `insights.json`, `graph.json`, `champions.json`, `canonical-classes.json` (P1), `learning.json` (P3), `evolution.json`, `principles.json`, `judgments.json`, `injections.json`, `session-events.json`, `consolidation.lock` (éphémère), `session-notes/<cwd-hash>/{notes.jsonl,meta.json,artifacts/}` (Bridge).
