@@ -10,6 +10,8 @@ Le système apprend de ses propres sessions. Grain = LE PROBLÈME. Cf. STATE.md 
 - [x] **E — app** : nav 2 groupes + 5 onglets Sessions/Problèmes/Schémas/Évolution/Injection. Validé E2E Playwright.
 - [x] Fix axe temporel : startTs réel + `redate-summaries.ts` (52 redatés → 4 buckets réels).
 - [ ] **Densification** : ~12 sessions en v2, 537 backlog en v1. Re-consolider pour activer comparaisons (2+ occ/catégorie) et tendances. Backfill 25 fait le 13/06.
+- [ ] **PRIORITAIRE — seuil de score minimum au classifier** (`classifier.ts` / `champion-context.ts`) : ne rien injecter si le meilleur match est sous le seuil. Coupe le bruit du hook UserPromptSubmit sur les messages méta (rien > bruit). Observé en live le 13/06. Cf. mémoire technical_decision f21dbfdd.
+- [ ] À terme : classifier sémantique (embeddings BGE-M3/nomic local) au lieu du recouvrement de tokens.
 
 ## Vision validée — voir docs/VISION.md (Consolidation & Brain)
 Système de consolidation 4 couches + digest PUSH (BRAIN.md injecté via SessionStart) + cron zéro-perte (systemd Persistent). But : courbe d'apprentissage continue.
