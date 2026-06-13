@@ -24,6 +24,18 @@ Capturer COMMENT Chris travaille/code depuis le chatting naturel, mettre les mé
 - [ ] **Approches multiples par problème** (`Problem.approaches`) : plusieurs manières pour un même sujet DANS une session → comparées puis recomparées cross-session. PRÉMATURÉ : data-starved + recouvre champions/judge déjà livrés. À faire APRÈS densification (sinon surcouche sans différence visible).
 - [ ] **Densification** : re-consolider en v3 pour faire monter occurrences + faire émerger contradictions réelles (manuel, appel de Chris sur le coût).
 
+## ════ PROCHAINE VAGUE — Bridge de notes vivantes (priorité #1) ════
+Plan complet en mémoire (technical_decision d467f70d). Claude note au fil de la discussion → consolidation relie au résumé → app affiche notes + artefacts ouvrables.
+**Décisions tranchées** : emplacement `~/.claude/claude-arcade/session-notes/<cwd-hash>/` (notes.jsonl append-only + artifacts/) ; rattachement par cwd + fenêtre temporelle [startTs,endTs] (PAS le session_id) ; canal = CLI bun `arcade-note <kind> "<text>" [--artifact path]` via Bash (pas de MCP) ; kinds = decision|contradiction|stack|pattern|summary|artifact|note ; 100% local.
+- [ ] A. CLI `src/notes/arcade-note.ts` + format + bin package.json + tests writer
+- [ ] B. Convention CLAUDE.md (via /prompt-architect) : noter décisions/contradictions/patterns/artefacts au fil de l'eau
+- [ ] C. `session-notes.ts` : `loadNotesForSession(cwd, startTs, endTs)` + branchement run.ts
+- [ ] D. Notes → digest (section haute fiabilité) + `SessionSummary.notes` + parse rétro-compat
+- [ ] E. App : champ « Notes de session » + artefacts ouvrables + `/api/session-notes/:id`
+- [ ] F. Tests + validation E2E (note → conso → rattachement → affichage)
+
+**Ordre global suite (B)** : Bridge #1 (enrichit la matière première de tout) > Densification #2 (re-conso v3 manuelle, coût = appel Chris) > Problem.approaches #3 (prématuré tant que data-starved).
+
 ## Vision validée — voir docs/VISION.md (Consolidation & Brain)
 Système de consolidation 4 couches + digest PUSH (BRAIN.md injecté via SessionStart) + cron zéro-perte (systemd Persistent). But : courbe d'apprentissage continue.
 - [x] **Couche 1 — résumé par session + ossature systemd zéro-perte** (livré, validé sur abonnement)
