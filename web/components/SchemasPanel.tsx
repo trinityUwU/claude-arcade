@@ -121,7 +121,7 @@ function CategoryDetail({ entry }: { entry: ChampionEntry }): React.JSX.Element 
 function CategoryList({ entries, selected, onPick }:
   { entries: ChampionEntry[]; selected: string; onPick: (cat: string) => void }): React.JSX.Element {
   return (
-    <div className="flex w-56 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-white/[0.07] pr-3">
+    <div className="flex max-h-52 w-full shrink-0 flex-col gap-0.5 overflow-y-auto border-b border-white/[0.07] pb-3 md:max-h-none md:w-56 md:border-b-0 md:border-r md:pb-0 md:pr-3">
       {entries.map((e) => (
         <button key={e.category} onClick={() => onPick(e.category)}
           className={`flex items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-[12.5px]
@@ -164,7 +164,7 @@ export function SchemasPanel(): React.JSX.Element {
   const active = sorted.find((e) => e.category === selected) ?? sorted[0];
   if (!active) return <PanelMessage text="Aucun champion élu pour l'instant." />;
   return (
-    <div className="flex flex-1 flex-col overflow-hidden px-8 py-6">
+    <div className="flex flex-1 flex-col overflow-hidden px-4 py-5 md:px-8 md:py-6">
       <header className="mb-4 flex items-center gap-3">
         <Trophy size={20} strokeWidth={1.75} className="text-fuchsia-200" />
         <div>
@@ -174,10 +174,10 @@ export function SchemasPanel(): React.JSX.Element {
           </p>
         </div>
       </header>
-      <div className="flex min-h-0 flex-1 gap-5">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 md:flex-row md:gap-5">
         <CategoryList entries={sorted} selected={active.category} onPick={setSelected} />
         <motion.div key={active.category} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25 }} className="min-w-0 flex-1 overflow-y-auto pr-1">
+          transition={{ duration: 0.25 }} className="min-h-0 min-w-0 flex-1 overflow-y-auto pr-1">
           <CategoryDetail entry={active} />
         </motion.div>
       </div>

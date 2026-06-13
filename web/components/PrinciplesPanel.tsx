@@ -189,7 +189,7 @@ function DomainDetail({ entry }: { entry: PrincipleEntry }): React.JSX.Element {
 function DomainList({ entries, selected, onPick }:
   { entries: PrincipleEntry[]; selected: string; onPick: (d: string) => void }): React.JSX.Element {
   return (
-    <div className="flex w-56 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-white/[0.07] pr-3">
+    <div className="flex max-h-52 w-full shrink-0 flex-col gap-0.5 overflow-y-auto border-b border-white/[0.07] pb-3 md:max-h-none md:w-56 md:border-b-0 md:border-r md:pb-0 md:pr-3">
       {entries.map((e) => (
         <button key={e.domain} onClick={() => onPick(e.domain)}
           className={`flex items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-[12.5px]
@@ -270,10 +270,10 @@ function PrinciplesBody({ entries }: { entries: PrincipleEntry[] }): React.JSX.E
   const active = entries.find((e) => e.domain === selected) ?? entries[0];
   if (!active) return <PanelMessage text="Aucun principe dégagé pour l'instant." />;
   return (
-    <div className="flex min-h-0 flex-1 gap-5">
+    <div className="flex min-h-0 flex-1 flex-col gap-4 md:flex-row md:gap-5">
       <DomainList entries={entries} selected={active.domain} onPick={setSelected} />
       <motion.div key={active.domain} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25 }} className="min-w-0 flex-1 overflow-y-auto pr-1">
+        transition={{ duration: 0.25 }} className="min-h-0 min-w-0 flex-1 overflow-y-auto pr-1">
         <DomainDetail entry={active} />
       </motion.div>
     </div>
@@ -301,7 +301,7 @@ export function PrinciplesPanel(): React.JSX.Element {
   if (error) return <PanelMessage text={`Erreur : ${error}`} />;
   if (!data) return <PanelMessage text="Chargement…" />;
   return (
-    <div className="flex flex-1 flex-col overflow-hidden px-8 py-6">
+    <div className="flex flex-1 flex-col overflow-hidden px-4 py-5 md:px-8 md:py-6">
       <PanelHeader onJudged={load} />
       <PrinciplesBody entries={sorted} />
     </div>
