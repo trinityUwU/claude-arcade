@@ -176,3 +176,28 @@ export interface ChampionEntry {
 }
 
 export interface ChampionsData { generatedAt: number; categories: ChampionEntry[]; }
+
+// ── Couche 2 : évolution (le système d'apprentissage s'améliore-t-il ?) ──
+
+export type TrendDirection = "improving" | "worsening" | "flat";
+
+export interface EvolutionBucket {
+  period: string;          // libellé ISO semaine, ex "2026-W24"
+  start: number;           // epoch ms du début de semaine (lundi)
+  sessions: number;
+  avgQuality: number;      // moyenne quality_score des sessions du bucket, arrondi
+  problems: number;        // nb total de problèmes du bucket
+  recurringProblems: number;   // problèmes dont la catégorie était déjà vue dans un bucket ANTÉRIEUR
+  recurrenceRate: number;  // recurringProblems / problems, 0-1 arrondi 2 déc (0 si problems=0)
+  avgChampionFitness: number;  // fitness moyen des champions connus à la fin de ce bucket, arrondi 3 déc
+  difficulty: { easy: number; medium: number; hard: number };
+}
+
+export interface EvolutionData {
+  generatedAt: number;
+  buckets: EvolutionBucket[];        // chronologiques croissants
+  overallRecurrenceRate: number;     // global, 0-1 arrondi 2 déc
+  recurrenceTrend: TrendDirection;   // recurrenceRate baisse = "improving"
+  avgChampionFitness: number;        // global, arrondi 3 déc
+  fitnessTrend: TrendDirection;      // fitness monte = "improving"
+}

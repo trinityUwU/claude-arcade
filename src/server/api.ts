@@ -2,7 +2,7 @@
 import index from "../../web/index.html";
 import { runScan } from "../scan.ts";
 import { loadState } from "../engine/state.ts";
-import { loadInsights, loadGraph, loadAllSummaries, loadSummary, loadChampions } from "../consolidate/store.ts";
+import { loadInsights, loadGraph, loadAllSummaries, loadSummary, loadChampions, loadEvolution } from "../consolidate/store.ts";
 import { consolidateStatus, startConsolidation, stopConsolidation } from "../consolidate/job.ts";
 import { readSession } from "../scanner/session-reader.ts";
 import { cleanTranscript } from "../consolidate/transcript-view.ts";
@@ -99,6 +99,13 @@ const server = Bun.serve({
       Response.json((await loadChampions()) ?? { generatedAt: 0, categories: [] }),
     "/api/champions/:category": async (req) => championResponse(req.params.category),
     "/api/problems": async () => problemsResponse(),
+    "/api/evolution": async () =>
+      Response.json(
+        (await loadEvolution()) ?? {
+          generatedAt: 0, buckets: [], overallRecurrenceRate: 0,
+          recurrenceTrend: "flat", avgChampionFitness: 0, fitnessTrend: "flat",
+        },
+      ),
     "/api/transcript/:id": async (req) => transcriptResponse(req.params.id),
     "/api/consolidate/status": async () => Response.json(await consolidateStatus()),
     "/api/consolidate": {
