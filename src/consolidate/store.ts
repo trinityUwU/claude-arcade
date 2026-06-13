@@ -3,7 +3,7 @@ import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { Glob } from "bun";
 import { stateDir } from "../engine/state.ts";
-import type { SessionSummary, ConsolidationIndex, Insights, GraphData, ChampionsData, EvolutionData } from "./types.ts";
+import type { SessionSummary, ConsolidationIndex, Insights, GraphData, ChampionsData, EvolutionData, InjectionRecord, InjectionLog } from "./types.ts";
 import { logger } from "../logger.ts";
 
 const INDEX_VERSION = 1;
@@ -108,6 +108,21 @@ export const saveChampions = (c: ChampionsData): Promise<void> => writeJson(cham
 export const loadChampions = (): Promise<ChampionsData | null> => readJson<ChampionsData>(championsPath());
 export const saveEvolution = (e: EvolutionData): Promise<void> => writeJson(evolutionPath(), e, "saveEvolution");
 export const loadEvolution = (): Promise<EvolutionData | null> => readJson<EvolutionData>(evolutionPath());
+
+// Trace des injections de champions dans le contexte des sessions (visible dans l'app).
+const INJECTION_CAP = 500;
+function injectionsPath(): string {
+  return join(stateDir(), "injections.json");
+}
+export async function loadInjections(): Promise<InjectionLog> {
+  const log = await readJson<InjectionLog>(injectionsPath());
+  return log && Array.isArray(log.records) ? log : { generatedAt: 0, records: [] };
+}
+export async function appendInjection(rec: InjectionRecord): Promise<void> {
+  const log = await loadInjections();
+  const records = [rec, ...log.records].slice(0, INJECTION_CAP);
+  await writeJson(injectionsPath(), { generatedAt: Date.now(), records }, "appendInjection");
+}
 
 // Watermark du mode auto : les sessions antérieures sont laissées au déclenchement manuel.
 function watermarkPath(): string {

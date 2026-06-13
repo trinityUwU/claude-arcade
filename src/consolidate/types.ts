@@ -201,3 +201,20 @@ export interface EvolutionData {
   avgChampionFitness: number;        // global, arrondi 3 déc
   fitnessTrend: TrendDirection;      // fitness monte = "improving"
 }
+
+// ── Couche 2 : trace des injections de champions dans le contexte des sessions ──
+
+export type InjectionEvent = "session-start" | "user-prompt-submit";
+
+export interface InjectionRecord {
+  at: number;                // epoch ms
+  event: InjectionEvent;
+  cwd: string;               // répertoire de la session qui a reçu l'injection
+  categories: string[];      // labels des catégories injectées
+  charCount: number;         // taille du contexte injecté
+}
+
+export interface InjectionLog {
+  generatedAt: number;
+  records: InjectionRecord[];   // les plus récents en premier, capés
+}
