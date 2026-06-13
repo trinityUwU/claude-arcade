@@ -1,5 +1,28 @@
 // Types de la couche de consolidation (résumés de session).
 
+export type DifficultyLevel = "easy" | "medium" | "hard";
+export type ProblemSeverity = "trivial" | "minor" | "major";
+export type ResolutionOutcome = "resolved" | "partial" | "unresolved";
+
+/** Schéma de résolution d'un problème rencontré dans la session. */
+export interface ResolutionSchema {
+  steps: string[];
+  tools_used: string[];
+  turns_to_resolve: number;
+  backtracks: number;
+  tool_errors: number;
+  outcome: ResolutionOutcome;
+}
+
+/** Un problème rencontré dans la session, avec son schéma de résolution. */
+export interface Problem {
+  id: string;
+  description: string;
+  category: string;
+  severity: ProblemSeverity;
+  resolution_schema: ResolutionSchema;
+}
+
 /** Champs produits par le `claude -p` de résumé (cf. summary-prompt.ts). */
 export interface SummaryFields {
   project: string;
@@ -10,6 +33,8 @@ export interface SummaryFields {
   decisions: string[];
   quality_score: number;
   links_hint: string[];
+  difficulty: { level: DifficultyLevel; why: string };
+  problems: Problem[];
 }
 
 /** Résumé persisté d'une session, avec métadonnées de traçabilité. */

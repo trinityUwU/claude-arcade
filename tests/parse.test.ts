@@ -49,3 +49,54 @@ test("validateSummary rejette les non-objets", () => {
   expect(validateSummary("string")).toBeNull();
   expect(validateSummary(42)).toBeNull();
 });
+
+test("validateSummary v2 narrow difficulty et problems bien formés", () => {
+  const r = validateSummary({
+    topic: "t",
+    difficulty: { level: "hard", why: "schéma complexe" },
+    problems: [{
+      id: "bug-1", description: "fuite mémoire", category: "perf", severity: "major",
+      resolution_schema: {
+        steps: ["profiler", "fix"], tools_used: ["Bash"],
+        turns_to_resolve: 4, backtracks: 2, tool_errors: 1, outcome: "resolved",
+      },
+    }],
+  });
+  expect(r?.difficulty).toEqual({ level: "hard", why: "schéma complexe" });
+  expect(r?.problems.length).toBe(1);
+  expect(r?.problems[0]).toEqual({
+    id: "bug-1", description: "fuite mémoire", category: "perf", severity: "major",
+    resolution_schema: {
+      steps: ["profiler", "fix"], tools_used: ["Bash"],
+      turns_to_resolve: 4, backtracks: 2, tool_errors: 1, outcome: "resolved",
+    },
+  });
+});
+
+test("validateSummary v1 rétro-compat : difficulty/problems par défaut", () => {
+  const r = validateSummary({ topic: "x" });
+  expect(r?.difficulty).toEqual({ level: "medium", why: "" });
+  expect(r?.problems).toEqual([]);
+});
+
+test("validateSummary applique les défauts robustes sur les problèmes", () => {
+  const r = validateSummary({
+    topic: "t",
+    problems: [
+      { description: "souci", category: "ux", severity: "bizarre", backtracks: -3 },
+      { description: "  ", category: "ux", severity: "minor" },
+    ],
+  });
+  expect(r?.problems.length).toBe(1);
+  const p = r?.problems[0];
+  expect(p?.id).toBe("p1");
+  expect(p?.severity).toBe("minor");
+  expect(p?.resolution_schema.turns_to_resolve).toBe(1);
+  expect(p?.resolution_schema.backtracks).toBe(0);
+  expect(p?.resolution_schema.outcome).toBe("resolved");
+});
+
+test("validateSummary difficulty level hors enum → medium", () => {
+  const r = validateSummary({ topic: "t", difficulty: { level: "extreme", why: "x" } });
+  expect(r?.difficulty).toEqual({ level: "medium", why: "x" });
+});

@@ -15,8 +15,8 @@ export interface TranscriptDigest {
   text: string;
 }
 
-const TURN_CHARS = 600; // troncature par bloc de texte
-const TOTAL_CHARS = 9000; // budget total du digest (head + tail)
+const TURN_CHARS = 800; // troncature par bloc de texte
+const TOTAL_CHARS = 16000; // budget total du digest (head + tail)
 const INPUT_KEYS = ["file_path", "command", "query", "pattern", "description", "prompt", "url", "skill"];
 
 function blocksOf(line: TranscriptLine): Block[] {
@@ -66,7 +66,7 @@ function renderPlain(line: TranscriptLine, out: string[]): void {
 function capHeadTail(lines: string[], budget: number): string {
   const joined = lines.join("\n");
   if (joined.length <= budget) return joined;
-  const head = Math.floor(budget * 0.55);
+  const head = Math.floor(budget * 0.5);
   const tail = budget - head;
   return `${joined.slice(0, head)}\n…[${joined.length - budget} caractères omis au milieu]…\n${joined.slice(-tail)}`;
 }

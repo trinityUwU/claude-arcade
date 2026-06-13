@@ -1,6 +1,17 @@
 // Extraction et validation robustes du JSON produit par le `claude -p` de résumé.
 // Isolé du spawn pour être testable unitairement.
-import type { SummaryFields } from "./types.ts";
+import type {
+  SummaryFields,
+  Problem,
+  ResolutionSchema,
+  DifficultyLevel,
+  ProblemSeverity,
+  ResolutionOutcome,
+} from "./types.ts";
+
+const DIFFICULTY_LEVELS: readonly DifficultyLevel[] = ["easy", "medium", "hard"];
+const PROBLEM_SEVERITIES: readonly ProblemSeverity[] = ["trivial", "minor", "major"];
+const RESOLUTION_OUTCOMES: readonly ResolutionOutcome[] = ["resolved", "partial", "unresolved"];
 
 /** Déballe l'enveloppe `--output-format json` de Claude (`{ result: "..." }`). */
 export function envelopeResult(raw: string): string {
@@ -40,6 +51,65 @@ function strArr(v: unknown): string[] {
   return v.filter((x): x is string => typeof x === "string" && x.trim().length > 0);
 }
 
+/** Coerce vers un entier borné par min, avec valeur par défaut si non finie. */
+function clampInt(v: unknown, min: number, def: number): number {
+  const n = typeof v === "number" ? v : Number(v);
+  if (!Number.isFinite(n)) return def;
+  return Math.max(min, Math.round(n));
+}
+
+/** Narrow une valeur vers un membre de la liste, sinon le fallback. */
+function narrowEnum<T extends string>(v: unknown, allowed: readonly T[], fallback: T): T {
+  // casts justifiés : `.includes` exige string[], puis v est prouvé ∈ allowed donc bien T
+  return typeof v === "string" && (allowed as readonly string[]).includes(v) ? (v as T) : fallback;
+}
+
+function validateDifficulty(v: unknown): { level: DifficultyLevel; why: string } {
+  const o = (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
+  return {
+    level: narrowEnum(o.level, DIFFICULTY_LEVELS, "medium"),
+    why: typeof o.why === "string" ? o.why : "",
+  };
+}
+
+function validateResolution(v: unknown): ResolutionSchema {
+  const o = (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
+  return {
+    steps: strArr(o.steps),
+    tools_used: strArr(o.tools_used),
+    turns_to_resolve: clampInt(o.turns_to_resolve, 1, 1),
+    backtracks: clampInt(o.backtracks, 0, 0),
+    tool_errors: clampInt(o.tool_errors, 0, 0),
+    outcome: narrowEnum(o.outcome, RESOLUTION_OUTCOMES, "resolved"),
+  };
+}
+
+/** Narrow une entrée problème, ou null si description/category vides. */
+function validateProblem(v: unknown, i: number): Problem | null {
+  if (!v || typeof v !== "object") return null;
+  const o = v as Record<string, unknown>;
+  const description = typeof o.description === "string" ? o.description.trim() : "";
+  const category = typeof o.category === "string" ? o.category.trim() : "";
+  if (!description || !category) return null;
+  return {
+    id: typeof o.id === "string" && o.id.trim() ? o.id.trim() : `p${i + 1}`,
+    description,
+    category,
+    severity: narrowEnum(o.severity, PROBLEM_SEVERITIES, "minor"),
+    resolution_schema: validateResolution(o.resolution_schema),
+  };
+}
+
+function validateProblems(v: unknown): Problem[] {
+  if (!Array.isArray(v)) return [];
+  const out: Problem[] = [];
+  for (let i = 0; i < v.length; i++) {
+    const p = validateProblem(v[i], i);
+    if (p) out.push(p);
+  }
+  return out;
+}
+
 /** Narrowing strict d'un objet inconnu vers SummaryFields (valeurs sûres par défaut). */
 export function validateSummary(obj: unknown): SummaryFields | null {
   if (!obj || typeof obj !== "object") return null;
@@ -55,5 +125,7 @@ export function validateSummary(obj: unknown): SummaryFields | null {
     decisions: strArr(o.decisions),
     quality_score: score,
     links_hint: strArr(o.links_hint),
+    difficulty: validateDifficulty(o.difficulty),
+    problems: validateProblems(o.problems),
   };
 }
