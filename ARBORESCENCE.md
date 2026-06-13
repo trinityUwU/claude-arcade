@@ -35,8 +35,10 @@ claude-arcade/
 │   │   ├── graph.ts          (C2) Graphe écosystème Obsidian : nœuds + arêtes + santé
 │   │   ├── fitness.ts        (C3) Fitness composite auto d'un schéma + breakdown pondéré (UI)
 │   │   ├── champions.ts      (C3) Regroupement par catégorie, élection champion par fitness, lignée
+│   │   ├── principles.ts     (B) Regroupe les process de pensée par domaine, confiance (1-1/(1+occ)), détecte les contradictions
 │   │   ├── evolution.ts      (C3) Buckets hebdo sur date réelle : recurrence_rate ↓ + fitness ↑ + tendances
 │   │   ├── champion-context.ts (C3/PUSH) Rendu markdown borné d'un champion → contexte injectable
+│   │   ├── principle-context.ts (B/PUSH) Rendu markdown borné des principes (globaux, cross-projet) → contexte injectable
 │   │   ├── classifier.ts     (C3/PUSH) Texte libre → catégories pertinentes (recouvrement de tokens)
 │   │   ├── redate-summaries.ts (C3) Migration zéro-token : redate les résumés via leur transcript + rebuild
 │   │   ├── transcript-view.ts Transcript nettoyé pour le panneau de détail (anti-bruit harness)
@@ -44,7 +46,7 @@ claude-arcade/
 │   │   └── empty-mcp.json    Config MCP vide (isolation : aucun serveur chargé)
 │   ├── hooks/                (C3/PUSH) Hooks Claude Code — injection dynamique des champions
 │   │   ├── hook-io.ts        Lecture stdin + émission JSON (additionalContext) + garde anti-récursion
-│   │   ├── session-start.ts  SessionStart : injecte les champions du projet courant (cwd)
+│   │   ├── session-start.ts  SessionStart : injecte les champions du projet (cwd) + les principes de travail globaux
 │   │   ├── user-prompt-submit.ts UserPromptSubmit : classifie le prompt → injecte le champion pertinent
 │   │   ├── session-end.ts    SessionEnd : détache la consolidation temps réel de la session terminée (gardes anti-récursion)
 │   │   └── install-hooks.sh  Installe les 3 hooks dans ~/.claude/settings.json (idempotent, backup) — ACTIVÉ
@@ -71,6 +73,7 @@ claude-arcade/
 │                             · ConsolidatePanel.tsx (déclenchement manuel : presets + quota libre + progression + stop)
 │                             · SessionsPanel.tsx (difficulté + problèmes + resolution_schema) · ProblemsPanel.tsx (catégories/sévérité)
 │                             · SchemasPanel.tsx (champion + breakdown fitness en barres) · EvolutionPanel.tsx (signaux + courbe SVG)
+│                             · PrinciplesPanel.tsx (B : domaines de pensée, énoncé dominant, barre de confiance, contradictions)
 │                             · InjectionsPanel.tsx (trace des injections PUSH) · SessionEndPanel.tsx (« Temps réel » : consolidations à la volée)
 ├── systemd/                  Cron zéro-perte ACTIVÉ (timer Persistent=true, mode auto/watermark)
 │   ├── claude-arcade-consolidate.service  oneshot : bun run consolidate (ARCADE_AUTO=1, quota 50)
@@ -82,9 +85,10 @@ claude-arcade/
     ├── insights.test.ts      (C2) Tests insights / récurrence
     ├── champions.test.ts     (C3) Tests fitness composite + élection champion + lignée
     ├── evolution.test.ts     (C3) Tests buckets, recurrence, tendances (date réelle)
+    ├── principles.test.ts    (B) Tests regroupement, confiance, contradiction, polarité dominante
     ├── injection.test.ts     (C3) Tests rendu contexte + classifier (+ seuil de score anti-bruit)
     ├── injections-store.test.ts (C3) Tests trace injections (cap, ordre)
     └── session-end.test.ts   (C3) Tests lock de consolidation + trace SessionEnd (ordre, cap)
 ```
 
-État persisté (hors repo, dans `~/.claude/claude-arcade/`) : `state.json`, `sessions/*.json`, `last-consolidation.json`, `auto-watermark.json`, `insights.json`, `graph.json`, `champions.json`, `evolution.json`, `injections.json`, `session-events.json`, `consolidation.lock` (éphémère).
+État persisté (hors repo, dans `~/.claude/claude-arcade/`) : `state.json`, `sessions/*.json`, `last-consolidation.json`, `auto-watermark.json`, `insights.json`, `graph.json`, `champions.json`, `evolution.json`, `principles.json`, `injections.json`, `session-events.json`, `consolidation.lock` (éphémère).

@@ -13,6 +13,17 @@ Le système apprend de ses propres sessions. Grain = LE PROBLÈME. Cf. STATE.md 
 - [x] **Seuil de score minimum au classifier** (`classifier.ts`) : `DEFAULT_MIN_SCORE=3` (≥2 hits indépendants), override `ARCADE_CLASSIFIER_MIN_SCORE`. Filtre `score >= seuil` au lieu de `> 0`. Coupe le bruit UserPromptSubmit (token isolé rejeté). +2 tests anti-bruit. Live sans rebuild (hook = process frais).
 - [ ] À terme : classifier sémantique (embeddings BGE-M3/nomic local) au lieu du recouvrement de tokens.
 
+## ════ COUCHE (B) — Principes / process de pensée — VAGUE 1 LIVRÉE ════
+Capturer COMMENT Chris travaille/code depuis le chatting naturel, mettre les méthodes en compétition, injecter les plus confiantes (cross-projet). Cf. STATE.md.
+- [x] **Data v3** : `Principle` + `SummaryFields.principles`. SCHEMA_VERSION 2→3. Prompt v3 (extraction explicite/implicite). Parse v3 + rétro-compat.
+- [x] **Compétition déterministe** (`principles.ts`) : regroupement par domaine, confiance `1-1/(1+occ)` ×0.5 si contesté, contradiction détectée, polarité dominante. `principles.json` + rebuild.
+- [x] **PUSH** : `principle-context.ts` (global cross-projet) branché dans `session-start.ts`. Trace via injections.json.
+- [x] **App** : onglet « Principes » (énoncé dominant + confiance + contradictions + instances).
+- [x] **Validé E2E réel** : 4 sessions consolidées v3 → 7 domaines, 1 récurrent 2× (0.667). Panneau 0 erreur. Injection 2984 chars. 72/72 tests.
+- [ ] **LLM-judge pour/contre + puissance** : quand 2+ process concurrents dans un domaine → comparaison qualitative (bornée, seulement en compétition).
+- [ ] **Approches multiples par problème** (`Problem.approaches`) : plusieurs manières pour un même sujet DANS une session → comparées puis recomparées cross-session.
+- [ ] **Densification** : re-consolider en v3 pour faire monter occurrences + faire émerger contradictions réelles.
+
 ## Vision validée — voir docs/VISION.md (Consolidation & Brain)
 Système de consolidation 4 couches + digest PUSH (BRAIN.md injecté via SessionStart) + cron zéro-perte (systemd Persistent). But : courbe d'apprentissage continue.
 - [x] **Couche 1 — résumé par session + ossature systemd zéro-perte** (livré, validé sur abonnement)

@@ -8,12 +8,13 @@ import { digestTranscript } from "./transcript-digest.ts";
 import { summarizeDigest, defaultModel } from "./summarize.ts";
 import {
   loadIndex, saveIndex, saveSummary, isProcessed, markProcessed,
-  loadAllSummaries, saveInsights, saveGraph, saveChampions, saveEvolution,
+  loadAllSummaries, saveInsights, saveGraph, saveChampions, saveEvolution, savePrinciples,
 } from "./store.ts";
 import { buildInsights } from "./insights.ts";
 import { buildGraph } from "./graph.ts";
 import { buildChampions } from "./champions.ts";
 import { buildEvolution } from "./evolution.ts";
+import { buildPrinciples } from "./principles.ts";
 import type {
   SessionSummary, ConsolidationIndex, ConsolidationRun, RunOptions, RunProgress, SessionEndOutcome,
 } from "./types.ts";
@@ -79,6 +80,7 @@ export async function rebuildInsights(): Promise<void> {
   const champions = buildChampions(summaries);
   await saveChampions(champions);
   await saveEvolution(buildEvolution(summaries, champions));
+  await savePrinciples(buildPrinciples(summaries));
 }
 
 /** Consolide UNE session ciblée (hook SessionEnd, temps réel). Idempotent : skip si déjà à jour.

@@ -9,6 +9,7 @@ import { ConsolidatePanel } from "./components/ConsolidatePanel.tsx";
 import { SessionsPanel } from "./components/SessionsPanel.tsx";
 import { ProblemsPanel } from "./components/ProblemsPanel.tsx";
 import { SchemasPanel } from "./components/SchemasPanel.tsx";
+import { PrinciplesPanel } from "./components/PrinciplesPanel.tsx";
 import { EvolutionPanel } from "./components/EvolutionPanel.tsx";
 import { InjectionsPanel } from "./components/InjectionsPanel.tsx";
 import { SessionEndPanel } from "./components/SessionEndPanel.tsx";
@@ -103,6 +104,7 @@ function ViewRouter({ view, shown }: { view: View; shown: AchievementResult[] })
     case "sessions": return <SessionsPanel />;
     case "problems": return <ProblemsPanel />;
     case "schemas": return <SchemasPanel />;
+    case "principles": return <PrinciplesPanel />;
     case "evolution": return <EvolutionPanel />;
     case "injections": return <InjectionsPanel />;
     case "realtime": return <SessionEndPanel />;

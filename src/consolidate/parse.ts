@@ -7,11 +7,16 @@ import type {
   DifficultyLevel,
   ProblemSeverity,
   ResolutionOutcome,
+  Principle,
+  PrinciplePolarity,
+  PrincipleSource,
 } from "./types.ts";
 
 const DIFFICULTY_LEVELS: readonly DifficultyLevel[] = ["easy", "medium", "hard"];
 const PROBLEM_SEVERITIES: readonly ProblemSeverity[] = ["trivial", "minor", "major"];
 const RESOLUTION_OUTCOMES: readonly ResolutionOutcome[] = ["resolved", "partial", "unresolved"];
+const PRINCIPLE_POLARITIES: readonly PrinciplePolarity[] = ["positive", "negative"];
+const PRINCIPLE_SOURCES: readonly PrincipleSource[] = ["stated", "inferred"];
 
 /** Déballe l'enveloppe `--output-format json` de Claude (`{ result: "..." }`). */
 export function envelopeResult(raw: string): string {
@@ -110,6 +115,34 @@ function validateProblems(v: unknown): Problem[] {
   return out;
 }
 
+/** Narrow une entrée principe, ou null si statement/domain vides. */
+function validatePrinciple(v: unknown, i: number): Principle | null {
+  if (!v || typeof v !== "object") return null;
+  const o = v as Record<string, unknown>;
+  const statement = typeof o.statement === "string" ? o.statement.trim() : "";
+  const domain = typeof o.domain === "string" ? o.domain.trim() : "";
+  if (!statement || !domain) return null;
+  return {
+    id: typeof o.id === "string" && o.id.trim() ? o.id.trim() : `pr${i + 1}`,
+    statement,
+    domain,
+    trigger: typeof o.trigger === "string" ? o.trigger.trim() : "",
+    polarity: narrowEnum(o.polarity, PRINCIPLE_POLARITIES, "positive"),
+    source: narrowEnum(o.source, PRINCIPLE_SOURCES, "inferred"),
+    rationale: typeof o.rationale === "string" ? o.rationale.trim() : "",
+  };
+}
+
+function validatePrinciples(v: unknown): Principle[] {
+  if (!Array.isArray(v)) return [];
+  const out: Principle[] = [];
+  for (let i = 0; i < v.length; i++) {
+    const p = validatePrinciple(v[i], i);
+    if (p) out.push(p);
+  }
+  return out;
+}
+
 /** Narrowing strict d'un objet inconnu vers SummaryFields (valeurs sûres par défaut). */
 export function validateSummary(obj: unknown): SummaryFields | null {
   if (!obj || typeof obj !== "object") return null;
@@ -127,5 +160,6 @@ export function validateSummary(obj: unknown): SummaryFields | null {
     links_hint: strArr(o.links_hint),
     difficulty: validateDifficulty(o.difficulty),
     problems: validateProblems(o.problems),
+    principles: validatePrinciples(o.principles), // absent (v1/v2) → [] (rétro-compat)
   };
 }

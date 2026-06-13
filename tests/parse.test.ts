@@ -100,3 +100,40 @@ test("validateSummary difficulty level hors enum → medium", () => {
   const r = validateSummary({ topic: "t", difficulty: { level: "extreme", why: "x" } });
   expect(r?.difficulty).toEqual({ level: "medium", why: "x" });
 });
+
+test("validateSummary v3 narrow les principles bien formés", () => {
+  const r = validateSummary({
+    topic: "t",
+    principles: [{
+      id: "pr1", statement: "Maquette d'abord", domain: "design ui",
+      trigger: "au début d'une UI", polarity: "positive", source: "stated", rationale: "valider le visuel",
+    }],
+  });
+  expect(r?.principles.length).toBe(1);
+  expect(r?.principles[0]).toEqual({
+    id: "pr1", statement: "Maquette d'abord", domain: "design ui",
+    trigger: "au début d'une UI", polarity: "positive", source: "stated", rationale: "valider le visuel",
+  });
+});
+
+test("validateSummary v1/v2 rétro-compat : principles par défaut []", () => {
+  const r = validateSummary({ topic: "x" });
+  expect(r?.principles).toEqual([]);
+});
+
+test("validateSummary principles : défauts robustes + rejet statement/domain vides", () => {
+  const r = validateSummary({
+    topic: "t",
+    principles: [
+      { statement: "X", domain: "debug", polarity: "bizarre", source: "n'importe" },
+      { statement: "  ", domain: "debug" },
+      { statement: "Y", domain: "  " },
+    ],
+  });
+  expect(r?.principles.length).toBe(1);
+  const p = r?.principles[0];
+  expect(p?.id).toBe("pr1");
+  expect(p?.polarity).toBe("positive");
+  expect(p?.source).toBe("inferred");
+  expect(p?.trigger).toBe("");
+});

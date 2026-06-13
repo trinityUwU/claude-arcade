@@ -23,6 +23,21 @@ export interface Problem {
   resolution_schema: ResolutionSchema;
 }
 
+export type PrinciplePolarity = "positive" | "negative";
+export type PrincipleSource = "stated" | "inferred";
+
+/** Un principe / process de pensée exprimé par Chris ou observé dans le déroulé.
+ *  Grain de la couche (B) : capturer COMMENT Chris veut qu'on travaille, pas un bug. */
+export interface Principle {
+  id: string;                  // slug stable dans la session, ex "pr1"
+  statement: string;           // la règle, formulée comme directive réutilisable
+  domain: string;              // domaine court générique réutilisable, ex "design ui", "workflow git"
+  trigger: string;             // le contexte où l'appliquer
+  polarity: PrinciplePolarity; // positive = à faire / negative = à éviter
+  source: PrincipleSource;     // stated = dit explicitement par Chris / inferred = déduit du déroulé
+  rationale: string;           // le motif derrière le principe
+}
+
 /** Champs produits par le `claude -p` de résumé (cf. summary-prompt.ts). */
 export interface SummaryFields {
   project: string;
@@ -35,6 +50,7 @@ export interface SummaryFields {
   links_hint: string[];
   difficulty: { level: DifficultyLevel; why: string };
   problems: Problem[];
+  principles: Principle[];
 }
 
 /** Résumé persisté d'une session, avec métadonnées de traçabilité. */
@@ -177,6 +193,38 @@ export interface ChampionEntry {
 }
 
 export interface ChampionsData { generatedAt: number; categories: ChampionEntry[]; }
+
+// ── Couche (B) : principes / process de pensée (compétition de méthodes de travail) ──
+
+/** Instance plate d'un principe, rattachée à sa session source. */
+export interface PrincipleInstance {
+  sessionId: string;
+  project: string;
+  principleId: string;
+  statement: string;
+  domain: string;
+  trigger: string;
+  polarity: PrinciplePolarity;
+  source: PrincipleSource;
+  rationale: string;
+  sessionQuality: number;
+  at: number;
+}
+
+/** Un domaine de pensée consolidé : les instances en compétition, leur confiance, leur contestation. */
+export interface PrincipleEntry {
+  domain: string;                  // clé de regroupement
+  label: string;                   // libellé lisible (domaine le plus court du groupe)
+  statement: string;               // énoncé représentant (instance dominante la plus récente)
+  polarity: PrinciplePolarity;     // polarité dominante du domaine
+  occurrences: number;
+  confidence: number;              // 0-1 déterministe : 1 - 1/(1+occ), ×0.5 si contesté, arrondi 3 déc
+  contested: boolean;              // true si un même énoncé porte les deux polarités (contradiction)
+  statedCount: number;             // nb d'instances explicitement énoncées par Chris (source=stated)
+  instances: PrincipleInstance[];  // les plus récentes d'abord
+}
+
+export interface PrinciplesData { generatedAt: number; domains: PrincipleEntry[]; }
 
 // ── Couche 2 : évolution (le système d'apprentissage s'améliore-t-il ?) ──
 
