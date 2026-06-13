@@ -82,6 +82,25 @@ test("classifyText : texte sans rapport → []", () => {
   expect(classifyText("recette de tarte aux pommes", data)).toEqual([]);
 });
 
+test("classifyText : un seul token incident (score < seuil) → [] (anti-bruit)", () => {
+  const data = champions([
+    entry({ category: "deploiement cloud", label: "Deploy", champion: instance({ description: "configuration nginx reverse proxy" }) }),
+  ]);
+  // "configuration" matche la desc une fois → descScore 1 → score 1 < 3
+  expect(classifyText("il faut configuration de quelque chose", data)).toEqual([]);
+  // "deploy" matche le label une fois → labelScore 1 → score 2 < 3
+  expect(classifyText("deploy maintenant le truc", data)).toEqual([]);
+});
+
+test("classifyText : label + desc (score = seuil) → accepté", () => {
+  const data = champions([
+    entry({ category: "deploiement cloud", label: "Deploy", champion: instance({ description: "configuration nginx reverse proxy" }) }),
+  ]);
+  // "deploy" (label, +2) + "configuration" (desc, +1) = 3 = seuil
+  const res = classifyText("deploy avec configuration", data);
+  expect(res.length).toBe(1);
+});
+
 test("classifyText : tri par score puis fitness", () => {
   const data = champions([
     entry({ category: "build tsc", label: "Build TSC", champion: instance({ fitness: 0.3, description: "erreur compilation tsc" }) }),

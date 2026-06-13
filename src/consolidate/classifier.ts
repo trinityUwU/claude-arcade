@@ -5,6 +5,18 @@ import { normalizeText } from "./text-normalize.ts";
 const LABEL_WEIGHT = 2;
 const DESC_WEIGHT = 1;
 
+// Score minimum pour qu'un champion soit jugé pertinent. Sous ce seuil = bruit (un seul
+// token incident), on n'injecte rien. 3 = au moins deux hits indépendants (1 label + 1 desc,
+// 2 tokens label, ou 3 tokens desc). Override via ARCADE_CLASSIFIER_MIN_SCORE.
+const DEFAULT_MIN_SCORE = 3;
+
+function minScore(): number {
+  const raw = process.env.ARCADE_CLASSIFIER_MIN_SCORE;
+  if (!raw) return DEFAULT_MIN_SCORE;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : DEFAULT_MIN_SCORE;
+}
+
 function tokenize(text: string): Set<string> {
   return new Set(
     normalizeText(text)
@@ -35,10 +47,11 @@ export function classifyText(
   const textTokens = tokenize(text);
   if (textTokens.size === 0) return [];
 
+  const threshold = minScore();
   return champions.categories
     .filter((e) => e.champion !== null)
     .map((e) => ({ entry: e, score: scoreEntry(textTokens, e) }))
-    .filter((s) => s.score > 0)
+    .filter((s) => s.score >= threshold)
     .sort((a, b) => b.score - a.score || (b.entry.champion?.fitness ?? 0) - (a.entry.champion?.fitness ?? 0))
     .slice(0, limit)
     .map((s) => s.entry);
