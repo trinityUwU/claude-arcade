@@ -21,6 +21,13 @@
 - [ ] **À affiner pour inc.3** : (a) la gate de CRÉATION doit exclure les classes d'échec transitoire/environnement (les 2 gaps réels — "permission mcp", "mauvais mécanisme invocation" — sont les anti-patterns que CLAUDE.md interdit de figer) ; (b) l'archivage auto ne doit PAS archiver les skills à chargement silencieux (agents, llm-*) sur le seul critère 0 invocation.
 
 ### INCRÉMENT 3 — Graduation + write-back (le cœur)
+**3a — Gates de création/archivage affinées — LIVRÉ**
+- [x] Heuristique **échec env/transitoire** (`coverage.ts` ENV_MARKERS) → classe non créable (`block:"env-failure"`). Anti-pattern CLAUDE.md.
+- [x] **Liste bannie manuelle** (`banned.ts` + `/api/config/banned` GET/POST) → `block:"banned"`, override Chris depuis l'app (boutons bannir/réautoriser). Les deux combinés (demande Chris).
+- [x] Filtre **chargement silencieux** (agents, llm-*) → `silentLoad:true`, jamais archivé auto. `creatable`/`archivable` exposés + UI (badges, compteurs « créables/archivables »).
+- [x] 3 tests (104 total) + tsc 0 + E2E réel (boucle ban complète : permission mcp→env-failure auto, mauvais mécanisme→banni manuel ; 20/39 archivables ; 0 erreur console).
+
+**3b/3c — reste**
 - [ ] Gate de graduation : principe/champion diplômé (confiance haute + jugé + lift prouvé).
 - [ ] Génération patch via `/prompt-architect` (réécriture sémantique) + **gate anti-bloat** (rejet si rallonge sans gain).
 - [ ] Journal des propositions (statuts applique-auto/manuel/rejete/recale-gate/attente) + **3 toggles auto/manuel par catégorie** (patch/création/élagage), auto défaut.

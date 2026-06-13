@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   SlidersHorizontal, GitCommitHorizontal, ShieldCheck, Lock, FileText,
-  LayoutList, Radar, TriangleAlert, Archive,
+  LayoutList, Radar, TriangleAlert, Archive, Ban, RotateCcw, EyeOff,
 } from "lucide-react";
 import type {
   ConfigTree, ConfigEntry, ConfigCommit, ConfigFile, CoverageReport,
@@ -92,52 +92,91 @@ function ModeBtn(
   );
 }
 
+const BLOCK_LABEL: Record<"env-failure" | "banned", string> = {
+  "env-failure": "échec env — non créable", banned: "banni",
+};
+
+function GapCard({ g, onBan }: { g: CoverageReport["gaps"][number]; onBan: (id: string, b: boolean) => void }): React.JSX.Element {
+  const tone = g.creatable ? "border-amber-400/15 bg-amber-400/[0.03]" : "border-white/[0.06] bg-white/[0.015] opacity-70";
+  return (
+    <div className={`rounded-xl border p-3 ${tone}`}>
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="font-mono text-[13px] text-white/90">{g.className}</span>
+        <span className="shrink-0 text-[11px] text-amber-200/80">{g.occurrences}× · {g.projects.length} projets</span>
+      </div>
+      <p className="mt-1 text-[12px] leading-relaxed text-white/55">{g.definition}</p>
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <p className="truncate text-[10px] text-white/35">{g.projects.join(" · ")}</p>
+        <div className="flex shrink-0 items-center gap-2">
+          {g.block && <span className="rounded-md bg-white/[0.06] px-1.5 py-0.5 text-[10px] text-white/45">{BLOCK_LABEL[g.block]}</span>}
+          {g.creatable && (
+            <button onClick={() => onBan(g.classId, true)}
+              className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] text-white/40 hover:bg-white/[0.06] hover:text-white/70">
+              <Ban size={11} /> bannir
+            </button>
+          )}
+          {g.block === "banned" && (
+            <button onClick={() => onBan(g.classId, false)}
+              className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] text-fuchsia-200/70 hover:bg-white/[0.06]">
+              <RotateCcw size={11} /> réautoriser
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CoverageView(): React.JSX.Element {
   const [data, setData] = useState<CoverageReport | null>(null);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    fetch("/api/config/coverage")
-      .then(async (r) => setData((await r.json()) as CoverageReport))
-      .catch((e: unknown) => setError(String(e)));
+
+  const load = useCallback(async (): Promise<void> => {
+    try { setData((await (await fetch("/api/config/coverage")).json()) as CoverageReport); }
+    catch (e: unknown) { setError(String(e)); }
   }, []);
+  useEffect(() => { void load(); }, [load]);
+
+  const ban = useCallback(async (classId: string, banned: boolean): Promise<void> => {
+    try {
+      await fetch("/api/config/banned", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ classId, banned }),
+      });
+      await load();
+    } catch (e: unknown) { setError(String(e)); }
+  }, [load]);
 
   if (error) return <PanelMessage text={`Erreur : ${error}`} />;
   if (!data) return <PanelMessage text="Calcul de la couverture…" />;
+  const creatable = data.gaps.filter((g) => g.creatable).length;
 
   return (
     <div className="flex-1 overflow-y-auto px-8 py-6">
       <section className="mb-8">
         <h2 className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-white/85">
-          <TriangleAlert size={15} className="text-amber-300" /> Gaps — classes récurrentes sans skill ({data.gaps.length})
+          <TriangleAlert size={15} className="text-amber-300" /> Gaps — classes récurrentes sans skill ({creatable} créables / {data.gaps.length})
         </h2>
-        <p className="mb-3 text-[11px] text-white/40">Candidates à création (≥4 occurrences, ≥2 projets, aucun skill ne couvre).</p>
+        <p className="mb-3 text-[11px] text-white/40">≥4 occurrences, ≥2 projets, aucun skill ne couvre. Les échecs transitoires/env et les classes bannies ne sont pas créables.</p>
         {data.gaps.length === 0
           ? <p className="text-[12px] text-white/35">Aucun gap : tes classes récurrentes sont couvertes.</p>
-          : <div className="flex flex-col gap-2">
-              {data.gaps.map((g) => (
-                <div key={g.classId} className="rounded-xl border border-amber-400/15 bg-amber-400/[0.03] p-3">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="font-mono text-[13px] text-white/90">{g.className}</span>
-                    <span className="shrink-0 text-[11px] text-amber-200/80">{g.occurrences}× · {g.projects.length} projets</span>
-                  </div>
-                  <p className="mt-1 text-[12px] leading-relaxed text-white/55">{g.definition}</p>
-                  <p className="mt-1.5 text-[10px] text-white/35">{g.projects.join(" · ")}</p>
-                </div>
-              ))}
-            </div>}
+          : <div className="flex flex-col gap-2">{data.gaps.map((g) => <GapCard key={g.classId} g={g} onBan={ban} />)}</div>}
       </section>
       <section>
         <h2 className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-white/85">
-          <Archive size={15} className="text-white/45" /> Morts — skills jamais invoqués ({data.dead.length})
+          <Archive size={15} className="text-white/45" /> Morts — skills jamais invoqués ({data.dead.filter((d) => d.archivable).length} archivables / {data.dead.length})
         </h2>
-        <p className="mb-3 text-[11px] text-white/40">0 invocation via le tool Skill = signal d'archivage (pas un verdict : certains skills sont chargés silencieusement).</p>
+        <p className="mb-3 text-[11px] text-white/40">0 invocation via le tool Skill. Les agents et skills llm-* sont chargés silencieusement → jamais archivés auto.</p>
         {data.dead.length === 0
           ? <p className="text-[12px] text-white/35">Aucun skill mort détecté.</p>
           : <div className="grid grid-cols-2 gap-2 xl:grid-cols-3">
               {data.dead.map((d) => (
-                <div key={d.relPath} className="rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-2">
-                  <span className="font-mono text-[12px] text-white/75">{d.name}</span>
-                  <p className="text-[10px] text-white/35">{d.invocations} invoc.</p>
+                <div key={d.relPath} className={`rounded-lg border px-3 py-2 ${d.silentLoad ? "border-white/[0.05] bg-white/[0.01] opacity-60" : "border-white/[0.07] bg-white/[0.02]"}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate font-mono text-[12px] text-white/75">{d.name}</span>
+                    {d.silentLoad && <EyeOff size={11} className="shrink-0 text-white/30" />}
+                  </div>
+                  <p className="text-[10px] text-white/35">{d.invocations} invoc.{d.silentLoad ? " · silencieux" : ""}</p>
                 </div>
               ))}
             </div>}

@@ -12,6 +12,7 @@ import { watchSessions } from "./watch.ts";
 import { scanConfig } from "../config/scan.ts";
 import { fileHistory } from "../config/git.ts";
 import { buildCoverage } from "../config/coverage.ts";
+import { loadBanned, setBanned } from "../config/banned.ts";
 import { configRoot } from "../config/paths.ts";
 import { logger } from "../logger.ts";
 import type { ScanResult } from "../types.ts";
@@ -95,11 +96,11 @@ async function configHistoryResponse(rel: string | null): Promise<Response> {
 
 /** Couverture skills (gaps + morts) calculée à la demande depuis les données persistées + le scan. */
 async function configCoverageResponse(): Promise<Response> {
-  const [scan, tree, summaries, registry, champions] = await Promise.all([
-    getScan(), scanConfig(), loadAllSummaries(), loadCanonicalRegistry(), loadChampions(),
+  const [scan, tree, summaries, registry, champions, banned] = await Promise.all([
+    getScan(), scanConfig(), loadAllSummaries(), loadCanonicalRegistry(), loadChampions(), loadBanned(),
   ]);
   const report = buildCoverage(
-    summaries, registry, champions ?? { generatedAt: 0, categories: [] }, scan.topSkills, tree.entries,
+    summaries, registry, champions ?? { generatedAt: 0, categories: [] }, scan.topSkills, tree.entries, banned,
   );
   return Response.json(report);
 }
@@ -198,6 +199,14 @@ const server = Bun.serve({
     "/api/config/file": async (req) => configFileResponse(new URL(req.url).searchParams.get("path")),
     "/api/config/history": async (req) => configHistoryResponse(new URL(req.url).searchParams.get("path")),
     "/api/config/coverage": async () => configCoverageResponse(),
+    "/api/config/banned": {
+      GET: async () => Response.json(await loadBanned()),
+      POST: async (req) => {
+        const body = (await req.json().catch(() => ({}))) as { classId?: string; banned?: boolean };
+        if (!body.classId) return Response.json({ error: "classId requis" }, { status: 400 });
+        return Response.json(await setBanned(body.classId, body.banned !== false));
+      },
+    },
   },
   error(err) {
     logger.error({ err }, "erreur serveur");

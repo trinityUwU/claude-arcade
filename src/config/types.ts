@@ -31,6 +31,8 @@ export interface ConfigFile {
 
 // --- Couverture skills (incrément 2) : gaps à créer + morts à archiver ---
 
+export type GapBlock = "env-failure" | "banned" | null;
+
 export interface CoverageGap {
   classId: string;
   className: string;
@@ -38,6 +40,8 @@ export interface CoverageGap {
   occurrences: number;
   projects: string[];
   championFitness: number | null;
+  creatable: boolean;    // false si bloqué (échec env transitoire ou banni manuellement)
+  block: GapBlock;       // raison du blocage de création, sinon null
 }
 
 export interface CoverageDeadSkill {
@@ -45,6 +49,8 @@ export interface CoverageDeadSkill {
   relPath: string;
   invocations: number;   // via le tool Skill ; 0 = jamais invoqué explicitement (signal, pas verdict)
   sessions: number;
+  silentLoad: boolean;   // agent/llm-* chargé silencieusement → 0 invoc. normal, jamais archivé auto
+  archivable: boolean;   // candidat archivage auto (= !silentLoad)
 }
 
 export interface CoverageReport {

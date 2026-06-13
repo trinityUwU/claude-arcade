@@ -60,3 +60,34 @@ test("morts : skill patchable jamais invoqué", () => {
   const r = buildCoverage([], registry(4), noChampions, usage, entries);
   expect(r.dead.map((d) => d.name)).toEqual(["vieux-skill"]);
 });
+
+function envRegistry(): CanonicalRegistry {
+  return {
+    schemaVersion: 1, updatedAt: 0,
+    classes: [{ id: "perm-mcp", name: "permission mcp non accordee", definition: "un appel à un outil MCP est bloqué car la permission n'a pas été accordée", createdAt: 0, occurrences: 6 }],
+  };
+}
+
+test("gate : échec env détecté → non créable, block env-failure", () => {
+  const summaries = [summary("/p/a", "perm-mcp"), summary("/p/b", "perm-mcp")];
+  const g = buildCoverage(summaries, envRegistry(), noChampions, [], []).gaps[0]!;
+  expect(g.creatable).toBe(false);
+  expect(g.block).toBe("env-failure");
+});
+
+test("gate : classe bannie manuellement → non créable, block banned", () => {
+  const summaries = [summary("/p/a", "pagination-api"), summary("/p/b", "pagination-api")];
+  const g = buildCoverage(summaries, registry(4), noChampions, [], [], ["pagination-api"]).gaps[0]!;
+  expect(g.creatable).toBe(false);
+  expect(g.block).toBe("banned");
+});
+
+test("morts : agents et llm-* sont silentLoad, non archivables auto", () => {
+  const entries = [skillEntry("llm-rag", "RAG"), skillEntry("doc-agent", "docs"), skillEntry("vieux", "mort")];
+  const r = buildCoverage([], registry(4), noChampions, [], entries);
+  const byName = new Map(r.dead.map((d) => [d.name, d]));
+  expect(byName.get("llm-rag")!.silentLoad).toBe(true);
+  expect(byName.get("llm-rag")!.archivable).toBe(false);
+  expect(byName.get("doc-agent")!.silentLoad).toBe(true);
+  expect(byName.get("vieux")!.archivable).toBe(true);
+});
