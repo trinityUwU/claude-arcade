@@ -8,10 +8,11 @@ import { digestTranscript } from "./transcript-digest.ts";
 import { summarizeDigest, defaultModel } from "./summarize.ts";
 import {
   loadIndex, saveIndex, saveSummary, isProcessed, markProcessed,
-  loadAllSummaries, saveInsights, saveGraph,
+  loadAllSummaries, saveInsights, saveGraph, saveChampions,
 } from "./store.ts";
 import { buildInsights } from "./insights.ts";
 import { buildGraph } from "./graph.ts";
+import { buildChampions } from "./champions.ts";
 import type {
   SessionSummary, ConsolidationIndex, ConsolidationRun, RunOptions, RunProgress,
 } from "./types.ts";
@@ -73,6 +74,7 @@ export async function rebuildInsights(): Promise<void> {
   const insights = buildInsights(summaries);
   await saveInsights(insights);
   await saveGraph(buildGraph(summaries, insights));
+  await saveChampions(buildChampions(summaries));
 }
 
 export async function runConsolidation(opts: RunOptions = {}): Promise<ConsolidationRun> {

@@ -3,7 +3,7 @@ import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { Glob } from "bun";
 import { stateDir } from "../engine/state.ts";
-import type { SessionSummary, ConsolidationIndex, Insights, GraphData } from "./types.ts";
+import type { SessionSummary, ConsolidationIndex, Insights, GraphData, ChampionsData } from "./types.ts";
 import { logger } from "../logger.ts";
 
 const INDEX_VERSION = 1;
@@ -74,6 +74,9 @@ function insightsPath(): string {
 function graphPath(): string {
   return join(stateDir(), "graph.json");
 }
+function championsPath(): string {
+  return join(stateDir(), "champions.json");
+}
 
 async function writeJson(path: string, data: unknown, label: string): Promise<void> {
   try {
@@ -98,6 +101,8 @@ export const saveInsights = (i: Insights): Promise<void> => writeJson(insightsPa
 export const saveGraph = (g: GraphData): Promise<void> => writeJson(graphPath(), g, "saveGraph");
 export const loadInsights = (): Promise<Insights | null> => readJson<Insights>(insightsPath());
 export const loadGraph = (): Promise<GraphData | null> => readJson<GraphData>(graphPath());
+export const saveChampions = (c: ChampionsData): Promise<void> => writeJson(championsPath(), c, "saveChampions");
+export const loadChampions = (): Promise<ChampionsData | null> => readJson<ChampionsData>(championsPath());
 
 // Watermark du mode auto : les sessions antérieures sont laissées au déclenchement manuel.
 function watermarkPath(): string {

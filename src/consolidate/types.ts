@@ -146,3 +146,33 @@ export interface GraphData {
   nodes: GraphNode[];
   edges: GraphEdge[];
 }
+
+// ── Couche 2 : champions (évolution darwinienne des schémas de résolution) ──
+
+/** Instance plate d'un schéma de résolution, scorée par fitness. */
+export interface SchemaInstance {
+  sessionId: string;
+  project: string;
+  problemId: string;
+  description: string;
+  category: string;
+  severity: ProblemSeverity;
+  resolution: ResolutionSchema;
+  fitness: number;
+  sessionQuality: number;
+  at: number;
+}
+
+export interface ChampionHistoryPoint { sessionId: string; fitness: number; at: number; }
+
+export interface ChampionEntry {
+  category: string;
+  label: string;
+  champion: SchemaInstance | null;
+  contenders: SchemaInstance[];
+  occurrences: number;
+  resolvedRate: number;
+  history: ChampionHistoryPoint[];
+}
+
+export interface ChampionsData { generatedAt: number; categories: ChampionEntry[]; }

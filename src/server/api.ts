@@ -2,13 +2,14 @@
 import index from "../../web/index.html";
 import { runScan } from "../scan.ts";
 import { loadState } from "../engine/state.ts";
-import { loadInsights, loadGraph, loadAllSummaries, loadSummary } from "../consolidate/store.ts";
+import { loadInsights, loadGraph, loadAllSummaries, loadSummary, loadChampions } from "../consolidate/store.ts";
 import { consolidateStatus, startConsolidation, stopConsolidation } from "../consolidate/job.ts";
 import { readSession } from "../scanner/session-reader.ts";
 import { cleanTranscript } from "../consolidate/transcript-view.ts";
 import { watchSessions } from "./watch.ts";
 import { logger } from "../logger.ts";
 import type { ScanResult } from "../types.ts";
+import type { SchemaInstance } from "../consolidate/types.ts";
 
 const PORT = Number(process.env.ARCADE_PORT ?? 4317);
 const encoder = new TextEncoder();
@@ -32,6 +33,22 @@ async function transcriptResponse(id: string): Promise<Response> {
   if (!summary) return new Response("not found", { status: 404 });
   const view = cleanTranscript(await readSession(summary.file));
   return Response.json(view);
+}
+
+/** Renvoie l'entrée champion d'une catégorie, ou 404 si absente. */
+async function championResponse(category: string): Promise<Response> {
+  const data = await loadChampions();
+  const entry = data?.categories.find((c) => c.category === category);
+  return entry ? Response.json(entry) : new Response("not found", { status: 404 });
+}
+
+/** Liste plate de tous les problèmes (contenders), triée par date décroissante. */
+async function problemsResponse(): Promise<Response> {
+  const data = await loadChampions();
+  if (!data) return Response.json([] as SchemaInstance[]);
+  const flat = data.categories.flatMap((c) => c.contenders);
+  flat.sort((a, b) => b.at - a.at);
+  return Response.json(flat);
 }
 
 function broadcast(result: ScanResult): void {
@@ -78,6 +95,10 @@ const server = Bun.serve({
       const s = await loadSummary(req.params.id);
       return s ? Response.json(s) : new Response("not found", { status: 404 });
     },
+    "/api/champions": async () =>
+      Response.json((await loadChampions()) ?? { generatedAt: 0, categories: [] }),
+    "/api/champions/:category": async (req) => championResponse(req.params.category),
+    "/api/problems": async () => problemsResponse(),
     "/api/transcript/:id": async (req) => transcriptResponse(req.params.id),
     "/api/consolidate/status": async () => Response.json(await consolidateStatus()),
     "/api/consolidate": {
