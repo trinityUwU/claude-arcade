@@ -26,13 +26,14 @@ claude-arcade/
 │   │   ├── summary-prompt.ts Prompt TIDD-EC du `claude -p` de résumé (JSON stable)
 │   │   ├── summarize.ts      Spawn `claude -p` isolé (zéro MCP, plan, sonnet cloud)
 │   │   ├── parse.ts          Extraction + validation robustes du JSON LLM (testé)
-│   │   ├── store.ts          Persistance résumés/insights/graphe + index idempotent
-│   │   ├── run.ts            Orchestrateur : quota backfill + idempotence + rebuild Couche 2
+│   │   ├── store.ts          Persistance résumés/insights/graphe + index idempotent + watermark auto
+│   │   ├── run.ts            Orchestrateur : runConsolidation({quota,since,onProgress,shouldStop}) + countPending + rebuild C2
+│   │   ├── job.ts            Job singleton anti-concurrent (déclenchement manuel app) : progression live + stop
 │   │   ├── text-normalize.ts (C2) Normalisation + clé de regroupement (récurrence)
 │   │   ├── insights.ts       (C2) Bilans projet, erreurs/process récurrents, notions
 │   │   ├── graph.ts          (C2) Graphe écosystème Obsidian : nœuds + arêtes + santé
 │   │   ├── transcript-view.ts Transcript nettoyé pour le panneau de détail (anti-bruit harness)
-│   │   ├── cli.ts            `bun run consolidate`
+│   │   ├── cli.ts            `bun run consolidate` — manuel (tout backlog) ou auto (ARCADE_AUTO=1 → watermark, zéro rattrapage)
 │   │   └── empty-mcp.json    Config MCP vide (isolation : aucun serveur chargé)
 │   ├── engine/
 │   │   ├── catalog.ts        ACHIEVEMENTS (IDs stables, tiers Copper→Olympian)
@@ -40,7 +41,7 @@ claude-arcade/
 │   │   ├── score.ts          Score global, rang, agrégats par catégorie
 │   │   └── state.ts          state.json local : unlocks + recent + détection nouveaux paliers
 │   ├── server/
-│   │   ├── api.ts            Bun.serve port 4317 : front + API + flux SSE temps réel (scan mémoïsé, throttle)
+│   │   ├── api.ts            Bun.serve port 4317 : front + API + SSE + endpoints /api/consolidate(/status|/stop)
 │   │   └── watch.ts          Surveille ~/.claude/projects → déclenche rescan auto sur activité
 │   └── loop/                 (Phase 3) review.ts + merge-draft.ts
 ├── bunfig.toml               Plugin bun-plugin-tailwind pour le bundling CSS
@@ -52,12 +53,13 @@ claude-arcade/
 │   ├── lib/
 │   │   ├── tiers.ts          Couleurs de tier + halos
 │   │   └── icons.tsx         Mapping noms/catégories → icônes Lucide (zéro emoji)
-│   └── components/           Sidebar.tsx (switch Arcade/Cerveau) · Topbar.tsx · BadgeCard.tsx
+│   └── components/           Sidebar.tsx (onglets Arcade/Cerveau/Conso) · Topbar.tsx · BadgeCard.tsx
 │                             · BrainGraph.tsx (graphe Obsidian 2D, clic→détail) · NodeDetail.tsx (résumé + transcript)
-├── systemd/                  Ossature cron zéro-perte (Persistent=true)
-│   ├── claude-arcade-consolidate.service  oneshot : bun run consolidate
+│                             · ConsolidatePanel.tsx (déclenchement manuel : presets + quota libre + progression + stop)
+├── systemd/                  Cron zéro-perte ACTIVÉ (timer Persistent=true, mode auto/watermark)
+│   ├── claude-arcade-consolidate.service  oneshot : bun run consolidate (ARCADE_AUTO=1, quota 50)
 │   ├── claude-arcade-consolidate.timer    OnCalendar=daily + Persistent (rattrapage réveil)
-│   └── install.sh            Copie les unités (N'ACTIVE PAS — go explicite requis)
+│   └── install.sh            Copie les unités (l'activation reste un go explicite)
 ├── hooks/                    (Phase 3) session-end.sh
 └── tests/
     ├── metrics.test.ts       Tests unitaires scanner + engine (fixtures inline)
