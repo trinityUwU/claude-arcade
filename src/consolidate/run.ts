@@ -19,6 +19,7 @@ import { buildGraph } from "./graph.ts";
 import { buildChampions } from "./champions.ts";
 import { buildEvolution } from "./evolution.ts";
 import { buildPrinciples } from "./principles.ts";
+import { runEvolution } from "../config/evolve-job.ts";
 import type {
   SessionSummary, ConsolidationIndex, ConsolidationRun, RunOptions, RunProgress, SessionEndOutcome,
 } from "./types.ts";
@@ -115,6 +116,8 @@ export async function consolidateSession(
   if (res === "empty") return { outcome: "empty" };
   await saveSummary(res);
   await rebuildInsights();
+  // Auto-évolution temps réel (plafonnée, kill-switch, jamais en batch). Ne casse jamais la conso.
+  try { await runEvolution(); } catch (err) { logger.error({ err }, "runEvolution (auto) failed"); }
   return { outcome: "consolidated", summary: res };
 }
 

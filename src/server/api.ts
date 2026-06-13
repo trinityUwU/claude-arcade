@@ -16,8 +16,10 @@ import { loadBanned, setBanned } from "../config/banned.ts";
 import { buildGraduation, mergeWithJournal } from "../config/graduation.ts";
 import { loadJournal } from "../config/proposals-store.ts";
 import { loadSettings, saveSettings } from "../config/settings.ts";
+import { applyProposal } from "../config/apply.ts";
+import { runEvolution } from "../config/evolve-job.ts";
 import { configRoot } from "../config/paths.ts";
-import type { CoverageReport, ConfigEntry, AutoSettings } from "../config/types.ts";
+import type { CoverageReport, ConfigEntry, AutoSettings, Proposal } from "../config/types.ts";
 import { logger } from "../logger.ts";
 import type { ScanResult } from "../types.ts";
 import type { SchemaInstance } from "../consolidate/types.ts";
@@ -113,13 +115,26 @@ async function configCoverageResponse(): Promise<Response> {
   return Response.json((await coverageData()).report);
 }
 
-/** Propositions d'évolution : détection live (graduation) fusionnée avec le journal persisté. */
-async function configProposalsResponse(): Promise<Response> {
+/** Liste fusionnée (détection live précise via scan + journal). Source des routes propositions. */
+async function liveProposals(): Promise<Proposal[]> {
   const [{ report, entries }, principles, journal] = await Promise.all([
     coverageData(), loadPrinciples(), loadJournal(),
   ]);
   const live = buildGraduation(principles ?? { generatedAt: 0, domains: [] }, report, entries);
-  return Response.json(mergeWithJournal(live, journal));
+  return mergeWithJournal(live, journal);
+}
+
+async function configProposalsResponse(): Promise<Response> {
+  return Response.json(await liveProposals());
+}
+
+/** Applique UNE proposition (action manuelle). 404 si l'id n'est plus un candidat pending. */
+async function applyOneResponse(req: Request): Promise<Response> {
+  const { id } = (await req.json().catch(() => ({}))) as { id?: string };
+  if (!id) return Response.json({ error: "id requis" }, { status: 400 });
+  const target = (await liveProposals()).find((p) => p.id === id && p.status === "pending");
+  if (!target) return new Response("not found", { status: 404 });
+  return Response.json(await applyProposal(target));
 }
 
 async function configSettingsResponse(req: Request): Promise<Response> {
@@ -230,6 +245,8 @@ const server = Bun.serve({
       },
     },
     "/api/config/proposals": async () => configProposalsResponse(),
+    "/api/config/proposals/apply": { POST: async (req) => applyOneResponse(req) },
+    "/api/config/evolve": { POST: async () => Response.json(await runEvolution((await getScan()).topSkills)) },
     "/api/config/settings": {
       GET: async () => Response.json(await loadSettings()),
       POST: async (req) => configSettingsResponse(req),

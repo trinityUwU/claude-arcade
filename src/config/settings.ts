@@ -5,8 +5,10 @@ import { stateDir } from "../engine/state.ts";
 import { logger } from "../logger.ts";
 import type { AutoSettings } from "./types.ts";
 
+// autoArchive OFF par défaut : « 0 invocation » est un signal trop faible pour supprimer des skills
+// faits main (beaucoup sont chargés silencieusement). Patch/create sont additifs et réversibles → ON.
 const DEFAULTS: AutoSettings = {
-  autoGenerate: true, autoPatch: true, autoCreate: true, autoArchive: true, maxPerCycle: 3,
+  autoGenerate: true, autoPatch: true, autoCreate: true, autoArchive: false, maxPerCycle: 3,
 };
 
 function settingsPath(): string {

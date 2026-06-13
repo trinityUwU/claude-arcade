@@ -44,10 +44,11 @@ export async function fileDiff(hash: string, rel: string): Promise<string> {
   return ok ? out : "";
 }
 
-/** Stage les chemins donnés et committe. Retourne le hash court, ou null si rien à committer. */
+/** Stage les chemins donnés (déplacements/suppressions inclus via -A) et committe.
+ *  Retourne le hash court, ou null si rien à committer. */
 export async function commitPaths(rels: string[], message: string): Promise<string | null> {
   if (!rels.length) return null;
-  const added = await runGit(["add", "--", ...rels]);
+  const added = await runGit(["add", "-A", "--", ...rels]);
   if (!added.ok) return null;
   const committed = await runGit(["commit", "-m", message]);
   if (!committed.ok) return null;

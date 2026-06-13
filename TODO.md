@@ -33,9 +33,13 @@
 - [x] Réglages (`settings.ts`) : kill-switch `autoGenerate` + 3 toggles `autoPatch/autoCreate/autoArchive` + cap `maxPerCycle` (défaut 3, anti-batch North Star). `/api/config/settings`.
 - [x] Sous-onglet « Auto-évolution » (toggles + liste propositions). 5 tests graduation (109 total) + tsc 0 + E2E réel (20 propositions archive, 0 create car gaps bloqués → chaîne gate prouvée, 0 erreur console). Bug clé dupliquée `archive:skills` corrigé (fallback nom skill premier niveau).
 
-**3c — Exécution write-back (génération LLM + écriture) — reste**
-- [ ] Génération patch via `/prompt-architect` (réécriture sémantique) + **gate anti-bloat** (rejet si rallonge sans gain).
-- [ ] Politique tokens (choix Chris : auto-total) implémentée **plafonnée** : auto sans clic, cap `maxPerCycle`, jamais pendant backfill (`ARCADE_LOOP_ACTIVE`), kill-switch.
+**3c — Exécution write-back (génération LLM + écriture) — LIVRÉ**
+- [x] Génération (`evolve-prompt.ts` + `evolve.ts`) : réécriture sémantique (patch) / création SKILL.md via `claude -p` isolé, **générateur injectable** (testable sans tokens). **Gate anti-bloat** (rejet si patch > current×1.25).
+- [x] Application (`apply.ts`) : snapshot → générer/déplacer → write → `commitPaths` (add -A pour les moves) → journal. Archive = déplacement vers `skills/.archived/` (token-free, réversible).
+- [x] Orchestrateur (`evolve-job.ts` `runEvolution`) : pending autorisées (toggles) plafonnées à `maxPerCycle`, jamais en batch (`ARCADE_LOOP_ACTIVE`), kill-switch. Branché sur `consolidateSession` (temps réel, gardé).
+- [x] API `/api/config/{proposals/apply, evolve}` + boutons « appliquer » / « Lancer maintenant ». **`autoArchive` défaut OFF** (signal 0-invoc trop faible pour supprimer des skills faits main — décision signalée).
+- [x] 4 tests apply (113 total) + tsc 0 + E2E réel (UI rendu, archivage OFF visible, 0 erreur console). Apply validé en config temp (archive/patch/create/anti-bloat) — vraie config jamais touchée.
+- [ ] **Suite (non bloquant)** : mesure fitness post-révision via courbe Phase 3 → revert auto signalé si un patch dégrade les sessions suivantes.
 - [x] **Backup config** (`src/config/backup.ts`) : snapshot tar.gz complet horodaté + rétention 30 + `listBackups`. Baseline tirée.
 - [ ] Application auto/manuel → **`snapshotConfig()` AVANT chaque write-back + commit git** (double filet, demande Chris). Whitelist (tout sauf CLAUDE.md). Élagage = **archivage** (`skills/.archived/`), jamais rm.
 - [ ] Mesure fitness post-révision via courbe Phase 3 → revert signalé si baisse.

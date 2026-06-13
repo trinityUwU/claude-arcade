@@ -77,7 +77,11 @@ claude-arcade/
 │   │   ├── banned.ts         Liste manuelle des classes bannies de création (override Chris) · loadBanned/setBanned · /api/config/banned
 │   │   ├── graduation.ts     buildGraduation (déterministe) : propositions patch/create/archive diplômées + mergeWithJournal (live↔journal)
 │   │   ├── proposals-store.ts Journal persistant des propositions (statuts applied/rejected/failed) · loadJournal/recordProposal
-│   │   ├── settings.ts       Réglages auto-évolution : kill-switch autoGenerate + 3 toggles + cap maxPerCycle (anti-batch) · /api/config/settings
+│   │   ├── settings.ts       Réglages auto-évolution : kill-switch autoGenerate + 3 toggles (autoArchive OFF défaut) + cap maxPerCycle · /api/config/settings
+│   │   ├── evolve-prompt.ts  Prompts génération : patch (réécriture sémantique) + create (nouveau SKILL.md), sortie JSON {content}
+│   │   ├── evolve.ts         generatePatch/generateCreate via claude -p isolé (générateur injectable) + gate anti-bloat (×1.25)
+│   │   ├── apply.ts          applyProposal : snapshot → générer/déplacer → write → commit → journal. Archive = move vers skills/.archived/
+│   │   ├── evolve-job.ts     runEvolution : pending autorisées plafonnées (maxPerCycle), jamais en batch, kill-switch · branché sur consolidateSession
 │   │   └── types.ts          ConfigEntry/ConfigTree/ConfigCommit/ConfigFile
 │   ├── server/
 │   │   ├── api.ts            Bun.serve port 4317 : front + API + SSE + endpoints /api/{canonical,learning,config(/file|/history),consolidate…}

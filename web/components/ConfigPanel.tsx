@@ -225,6 +225,8 @@ function EvolutionView(): React.JSX.Element {
   }, []);
   useEffect(() => { void load(); }, [load]);
 
+  const [busy, setBusy] = useState(false);
+
   const patch = useCallback(async (p: Partial<AutoSettings>): Promise<void> => {
     try {
       const r = await fetch("/api/config/settings", {
@@ -233,6 +235,22 @@ function EvolutionView(): React.JSX.Element {
       setSettings((await r.json()) as AutoSettings);
     } catch (e: unknown) { setError(String(e)); }
   }, []);
+
+  const applyOne = useCallback(async (id: string): Promise<void> => {
+    setBusy(true);
+    try {
+      await fetch("/api/config/proposals/apply", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }),
+      });
+      await load();
+    } catch (e: unknown) { setError(String(e)); } finally { setBusy(false); }
+  }, [load]);
+
+  const runAll = useCallback(async (): Promise<void> => {
+    setBusy(true);
+    try { await fetch("/api/config/evolve", { method: "POST" }); await load(); }
+    catch (e: unknown) { setError(String(e)); } finally { setBusy(false); }
+  }, [load]);
 
   if (error) return <PanelMessage text={`Erreur : ${error}`} />;
   if (!settings || !props) return <PanelMessage text="Chargement…" />;
@@ -256,10 +274,18 @@ function EvolutionView(): React.JSX.Element {
         </div>
       </section>
       <section>
-        <h2 className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-white/85">
-          <GitMerge size={15} className="text-fuchsia-200" /> Propositions ({pending} en attente / {props.length})
-        </h2>
-        <p className="mb-3 text-[11px] text-white/40">Diplômées des consolidations : patch (principe confiant + jugé), création (gap créable), archivage (mort).</p>
+        <div className="mb-1 flex items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2 text-[13px] font-semibold text-white/85">
+            <GitMerge size={15} className="text-fuchsia-200" /> Propositions ({pending} en attente / {props.length})
+          </h2>
+          {pending > 0 && (
+            <button onClick={() => void runAll()} disabled={busy}
+              className="rounded-lg bg-fuchsia-500/20 px-3 py-1.5 text-[12px] text-fuchsia-100 hover:bg-fuchsia-500/30 disabled:opacity-40">
+              {busy ? "…" : "Lancer maintenant"}
+            </button>
+          )}
+        </div>
+        <p className="mb-3 text-[11px] text-white/40">Diplômées des consolidations : patch (principe confiant + jugé), création (gap créable), archivage (mort). Snapshot + commit git avant chaque écriture.</p>
         {props.length === 0
           ? <p className="text-[12px] text-white/35">Aucune proposition pour l'instant.</p>
           : <div className="flex flex-col gap-2">
@@ -271,10 +297,20 @@ function EvolutionView(): React.JSX.Element {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
                         <span className="truncate text-[13px] text-white/85">{p.title}</span>
-                        <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] ${STATUS_TONE[p.status]}`}>{p.status}</span>
+                        <div className="flex shrink-0 items-center gap-2">
+                          {p.status === "pending" && (
+                            <button onClick={() => void applyOne(p.id)} disabled={busy}
+                              className="rounded-md bg-white/[0.06] px-2 py-0.5 text-[10px] text-white/70 hover:bg-white/[0.12] disabled:opacity-40">
+                              appliquer
+                            </button>
+                          )}
+                          <span className={`rounded-md px-1.5 py-0.5 text-[10px] ${STATUS_TONE[p.status]}`}>{p.status}</span>
+                        </div>
                       </div>
                       <p className="mt-0.5 text-[11px] leading-relaxed text-white/50">{p.rationale}</p>
                       {p.targetRel && <p className="mt-1 font-mono text-[10px] text-white/30">{p.targetRel}</p>}
+                      {p.commitHash && <p className="mt-1 text-[10px] text-emerald-300/60">commit {p.commitHash}</p>}
+                      {p.note && <p className="mt-1 text-[10px] text-rose-300/60">{p.note}</p>}
                     </div>
                   </div>
                 );
