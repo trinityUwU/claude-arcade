@@ -27,7 +27,12 @@ function rank(entries: PrincipleEntry[], maxEntries: number): PrincipleEntry[] {
 function renderEntry(entry: PrincipleEntry): string {
   const verb = entry.polarity === "positive" ? "✓ à faire" : "✗ à éviter";
   const flag = entry.contested ? " · ⚠ contesté" : "";
-  const head = `### ${entry.label} · ${verb} · confiance ${entry.confidence} · vu ${entry.occurrences}×${flag}`;
+  const judged = entry.judgment ? " · ⚖ jugé" : "";
+  const head = `### ${entry.label} · ${verb} · confiance ${entry.confidence} · vu ${entry.occurrences}×${flag}${judged}`;
+  // Un domaine jugé porte une recommandation arbitrée (pour/contre tranchés) → plus forte que l'énoncé brut.
+  if (entry.judgment?.recommendation) {
+    return `${head}\n${entry.judgment.recommendation}`;
+  }
   const when = entry.instances[0]?.trigger?.trim();
   return when ? `${head}\n${entry.statement}\nQuand : ${when}` : `${head}\n${entry.statement}`;
 }

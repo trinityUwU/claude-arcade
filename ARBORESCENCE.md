@@ -35,7 +35,10 @@ claude-arcade/
 │   │   ├── graph.ts          (C2) Graphe écosystème Obsidian : nœuds + arêtes + santé
 │   │   ├── fitness.ts        (C3) Fitness composite auto d'un schéma + breakdown pondéré (UI)
 │   │   ├── champions.ts      (C3) Regroupement par catégorie, élection champion par fitness, lignée
-│   │   ├── principles.ts     (B) Regroupe les process de pensée par domaine, confiance (1-1/(1+occ)), détecte les contradictions
+│   │   ├── principles.ts     (B) Regroupe les process de pensée par domaine, confiance (1-1/(1+occ)), contradictions, signature + réattache les verdicts
+│   │   ├── judge-prompt.ts   (B) Prompt comparatif : pour/contre + puissance des approches concurrentes d'un domaine (JSON strict)
+│   │   ├── principle-judge.ts (B) Juge LLM : compare les approches d'un domaine éligible (2+ énoncés), mémoïsé par signature, jamais en consolidation
+│   │   ├── judge-job.ts      (B) Job singleton du jugement (déclenchement manuel app : statut/start/stop)
 │   │   ├── evolution.ts      (C3) Buckets hebdo sur date réelle : recurrence_rate ↓ + fitness ↑ + tendances
 │   │   ├── champion-context.ts (C3/PUSH) Rendu markdown borné d'un champion → contexte injectable
 │   │   ├── principle-context.ts (B/PUSH) Rendu markdown borné des principes (globaux, cross-projet) → contexte injectable
@@ -86,9 +89,10 @@ claude-arcade/
     ├── champions.test.ts     (C3) Tests fitness composite + élection champion + lignée
     ├── evolution.test.ts     (C3) Tests buckets, recurrence, tendances (date réelle)
     ├── principles.test.ts    (B) Tests regroupement, confiance, contradiction, polarité dominante
+    ├── principle-judge.test.ts (B) Tests signature, éligibilité, réattachement mémoïsé, validation du verdict
     ├── injection.test.ts     (C3) Tests rendu contexte + classifier (+ seuil de score anti-bruit)
     ├── injections-store.test.ts (C3) Tests trace injections (cap, ordre)
     └── session-end.test.ts   (C3) Tests lock de consolidation + trace SessionEnd (ordre, cap)
 ```
 
-État persisté (hors repo, dans `~/.claude/claude-arcade/`) : `state.json`, `sessions/*.json`, `last-consolidation.json`, `auto-watermark.json`, `insights.json`, `graph.json`, `champions.json`, `evolution.json`, `principles.json`, `injections.json`, `session-events.json`, `consolidation.lock` (éphémère).
+État persisté (hors repo, dans `~/.claude/claude-arcade/`) : `state.json`, `sessions/*.json`, `last-consolidation.json`, `auto-watermark.json`, `insights.json`, `graph.json`, `champions.json`, `evolution.json`, `principles.json`, `judgments.json`, `injections.json`, `session-events.json`, `consolidation.lock` (éphémère).

@@ -1,11 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Compass, Check, Ban, TriangleAlert, Quote } from "lucide-react";
+import { Compass, Check, Ban, TriangleAlert, Quote, Scale, Loader, Plus, Minus } from "lucide-react";
 import type {
-  PrinciplesData, PrincipleEntry, PrincipleInstance, PrinciplePolarity,
+  PrinciplesData, PrincipleEntry, PrincipleInstance, PrinciplePolarity, RankedApproach, JudgeStatus,
 } from "../../src/consolidate/types.ts";
 import { SectionHeader, formatDate, basename } from "../lib/format.tsx";
 import { PanelMessage } from "./SessionsPanel.tsx";
+
+function powerBg(p: number): string {
+  if (p >= 0.66) return "bg-emerald-400";
+  if (p < 0.4) return "bg-rose-400";
+  return "bg-amber-300";
+}
 
 function confidenceColor(c: number): string {
   if (c >= 0.66) return "text-emerald-400";
@@ -92,6 +98,68 @@ function DominantCard({ entry }: { entry: PrincipleEntry }): React.JSX.Element {
   );
 }
 
+function ProsCons({ items, kind }: { items: string[]; kind: "pro" | "con" }): React.JSX.Element | null {
+  if (items.length === 0) return null;
+  const Icon = kind === "pro" ? Plus : Minus;
+  const color = kind === "pro" ? "text-emerald-400" : "text-rose-400";
+  return (
+    <ul className="space-y-0.5">
+      {items.map((t, i) => (
+        <li key={i} className="flex items-start gap-1.5 text-[11.5px] leading-snug text-white/60">
+          <Icon size={11} strokeWidth={2.5} className={`mt-0.5 shrink-0 ${color}`} />{t}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function RankedRow({ approach, rank }: { approach: RankedApproach; rank: number }): React.JSX.Element {
+  return (
+    <div className="rounded-lg border border-white/[0.07] bg-white/[0.02] p-3">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[12px] leading-snug text-white/80">
+          <span className="mr-1.5 tabular-nums text-white/30">#{rank}</span>{approach.statement}
+        </p>
+        <span className="shrink-0 text-[11px] font-bold tabular-nums text-white/60">
+          {Math.round(approach.power * 100)}%
+        </span>
+      </div>
+      <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/[0.06]">
+        <div className={`h-full rounded-full ${powerBg(approach.power)}`}
+          style={{ width: `${approach.power * 100}%` }} />
+      </div>
+      <div className="mt-2 grid grid-cols-2 gap-3">
+        <ProsCons items={approach.pros} kind="pro" />
+        <ProsCons items={approach.cons} kind="con" />
+      </div>
+    </div>
+  );
+}
+
+function JudgmentCard({ entry }: { entry: PrincipleEntry }): React.JSX.Element | null {
+  const j = entry.judgment;
+  if (!j) return null;
+  return (
+    <div className="mb-4 rounded-xl border border-sky-400/25 bg-sky-400/[0.04] p-4">
+      <div className="mb-2 flex items-center gap-2">
+        <Scale size={15} className="text-sky-300" />
+        <span className="text-[12px] font-semibold uppercase tracking-widest text-sky-300/90">Verdict</span>
+        <span className="ml-auto text-[10px] tabular-nums text-white/30">{formatDate(j.judgedAt)}</span>
+      </div>
+      {j.synthesis && <p className="mb-3 text-[12.5px] leading-snug text-white/75">{j.synthesis}</p>}
+      <div className="space-y-2">
+        {j.ranked.map((a, i) => <RankedRow key={i} approach={a} rank={i + 1} />)}
+      </div>
+      {j.recommendation && (
+        <div className="mt-3 rounded-lg border border-sky-400/20 bg-sky-400/[0.06] p-2.5">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-sky-300/80">Recommandation</span>
+          <p className="mt-0.5 text-[12.5px] font-medium leading-snug text-white/85">{j.recommendation}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DomainDetail({ entry }: { entry: PrincipleEntry }): React.JSX.Element {
   return (
     <div>
@@ -107,6 +175,7 @@ function DomainDetail({ entry }: { entry: PrincipleEntry }): React.JSX.Element {
         )}
       </div>
       <DominantCard entry={entry} />
+      <JudgmentCard entry={entry} />
       <SectionHeader label={`Instances (${entry.instances.length})`} />
       <div className="space-y-3">
         {entry.instances.map((inst) => (
@@ -137,7 +206,46 @@ function DomainList({ entries, selected, onPick }:
   );
 }
 
-function PanelHeader(): React.JSX.Element {
+function JudgeButton(
+  { status, onStart }: { status: JudgeStatus | null; onStart: () => void },
+): React.JSX.Element | null {
+  if (!status) return null;
+  const { running, pending, judged } = status;
+  const disabled = running || pending === 0;
+  const label = running ? `Jugement… (${judged})` : pending > 0 ? `Juger ${pending}` : "Tout jugé";
+  return (
+    <button onClick={onStart} disabled={disabled}
+      className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors
+        ${disabled ? "border-white/[0.07] text-white/30"
+          : "border-sky-400/30 bg-sky-400/[0.06] text-sky-200 hover:bg-sky-400/[0.12]"}`}>
+      {running ? <Loader size={14} className="animate-spin" /> : <Scale size={14} />}{label}
+    </button>
+  );
+}
+
+function useJudge(onJudged: () => void): { status: JudgeStatus | null; start: () => void } {
+  const [status, setStatus] = useState<JudgeStatus | null>(null);
+  const refresh = useCallback(async (): Promise<JudgeStatus | null> => {
+    try {
+      const s = (await (await fetch("/api/principles/judge/status")).json()) as JudgeStatus;
+      setStatus(s);
+      return s;
+    } catch { return null; }
+  }, []);
+  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => {
+    if (!status?.running) return;
+    const t = setInterval(() => { void refresh().then((s) => { if (s && !s.running) onJudged(); }); }, 2000);
+    return () => clearInterval(t);
+  }, [status?.running, refresh, onJudged]);
+  const start = useCallback(() => {
+    void fetch("/api/principles/judge", { method: "POST" }).then(() => refresh());
+  }, [refresh]);
+  return { status, start };
+}
+
+function PanelHeader({ onJudged }: { onJudged: () => void }): React.JSX.Element {
+  const { status, start } = useJudge(onJudged);
   return (
     <header className="mb-4 flex items-center gap-3">
       <Compass size={20} strokeWidth={1.75} className="text-fuchsia-200" />
@@ -148,6 +256,7 @@ function PanelHeader(): React.JSX.Element {
           les contradictions sont signalées.
         </p>
       </div>
+      <div className="ml-auto"><JudgeButton status={status} onStart={start} /></div>
     </header>
   );
 }
@@ -175,12 +284,14 @@ export function PrinciplesPanel(): React.JSX.Element {
   const [data, setData] = useState<PrinciplesData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     fetch("/api/principles")
       .then((r) => r.json())
       .then((d: PrinciplesData) => setData(d))
       .catch((e: unknown) => setError(String(e)));
   }, []);
+
+  useEffect(() => { load(); }, [load]);
 
   const sorted = useMemo(
     () => (data ? [...data.domains].sort((a, b) => b.occurrences - a.occurrences || b.confidence - a.confidence) : []),
@@ -191,7 +302,7 @@ export function PrinciplesPanel(): React.JSX.Element {
   if (!data) return <PanelMessage text="Chargement…" />;
   return (
     <div className="flex flex-1 flex-col overflow-hidden px-8 py-6">
-      <PanelHeader />
+      <PanelHeader onJudged={load} />
       <PrinciplesBody entries={sorted} />
     </div>
   );

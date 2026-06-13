@@ -6,7 +6,7 @@ import { stateDir } from "../engine/state.ts";
 import type {
   SessionSummary, ConsolidationIndex, Insights, GraphData, ChampionsData,
   EvolutionData, InjectionRecord, InjectionLog, SessionEndEvent, SessionEndLog,
-  PrinciplesData,
+  PrinciplesData, JudgmentsData,
 } from "./types.ts";
 import { logger } from "../logger.ts";
 
@@ -87,6 +87,9 @@ function evolutionPath(): string {
 function principlesPath(): string {
   return join(stateDir(), "principles.json");
 }
+function judgmentsPath(): string {
+  return join(stateDir(), "judgments.json");
+}
 
 async function writeJson(path: string, data: unknown, label: string): Promise<void> {
   try {
@@ -117,6 +120,11 @@ export const saveEvolution = (e: EvolutionData): Promise<void> => writeJson(evol
 export const loadEvolution = (): Promise<EvolutionData | null> => readJson<EvolutionData>(evolutionPath());
 export const savePrinciples = (p: PrinciplesData): Promise<void> => writeJson(principlesPath(), p, "savePrinciples");
 export const loadPrinciples = (): Promise<PrinciplesData | null> => readJson<PrinciplesData>(principlesPath());
+export const saveJudgments = (j: JudgmentsData): Promise<void> => writeJson(judgmentsPath(), j, "saveJudgments");
+export async function loadJudgments(): Promise<JudgmentsData> {
+  const j = await readJson<JudgmentsData>(judgmentsPath());
+  return j && j.byDomain ? j : { generatedAt: 0, byDomain: {} };
+}
 
 // Trace des injections de champions dans le contexte des sessions (visible dans l'app).
 const INJECTION_CAP = 500;

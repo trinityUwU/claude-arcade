@@ -29,7 +29,8 @@ function spawnArgs(model: string): string[] {
   ];
 }
 
-async function runClaude(prompt: string, model: string, timeoutMs: number): Promise<string> {
+/** Spawn `claude -p` isolé (zéro MCP, plan, anti-récursion). Partagé résumé + juge. */
+export async function runIsolatedClaude(prompt: string, model: string, timeoutMs: number): Promise<string> {
   const proc = Bun.spawn(spawnArgs(model), {
     stdin: "pipe", stdout: "pipe", stderr: "pipe",
     env: { ...process.env, ARCADE_LOOP_ACTIVE: "1" },
@@ -56,7 +57,7 @@ export async function summarizeDigest(
 ): Promise<SummaryFields | null> {
   if (!digestText.trim()) return null;
   try {
-    const raw = await runClaude(buildSummaryPrompt(digestText), model, timeoutMs);
+    const raw = await runIsolatedClaude(buildSummaryPrompt(digestText), model, timeoutMs);
     const fields = validateSummary(extractJson(envelopeResult(raw)));
     if (!fields) logger.warn("résumé : JSON non extractible");
     return fields;

@@ -211,6 +211,24 @@ export interface PrincipleInstance {
   at: number;
 }
 
+/** Une approche jugée au sein d'un domaine : sa puissance relative et ses pour/contre. */
+export interface RankedApproach {
+  statement: string;
+  power: number;        // 0-1, puissance relative jugée par le LLM
+  pros: string[];
+  cons: string[];
+}
+
+/** Verdict LLM comparant les approches concurrentes d'un domaine (pour/contre + puissance). */
+export interface PrincipleJudgment {
+  synthesis: string;            // synthèse comparative
+  ranked: RankedApproach[];     // approches classées par puissance décroissante
+  recommendation: string;       // directive actionnable retenue
+  signature: string;            // empreinte des instances jugées (mémoïsation : re-juge si change)
+  model: string;
+  judgedAt: number;
+}
+
 /** Un domaine de pensée consolidé : les instances en compétition, leur confiance, leur contestation. */
 export interface PrincipleEntry {
   domain: string;                  // clé de regroupement
@@ -221,10 +239,28 @@ export interface PrincipleEntry {
   confidence: number;              // 0-1 déterministe : 1 - 1/(1+occ), ×0.5 si contesté, arrondi 3 déc
   contested: boolean;              // true si un même énoncé porte les deux polarités (contradiction)
   statedCount: number;             // nb d'instances explicitement énoncées par Chris (source=stated)
+  signature: string;               // empreinte des instances (pour la mémoïsation du jugement)
+  judgment?: PrincipleJudgment;    // verdict LLM, réattaché si sa signature matche encore
   instances: PrincipleInstance[];  // les plus récentes d'abord
 }
 
 export interface PrinciplesData { generatedAt: number; domains: PrincipleEntry[]; }
+
+/** Jugements LLM persistés, indexés par domaine (source de vérité, survit aux rebuilds). */
+export interface JudgmentsData {
+  generatedAt: number;
+  byDomain: Record<string, PrincipleJudgment>;
+}
+
+/** État du job de jugement exposé à l'app (déclenchement manuel). */
+export interface JudgeStatus {
+  running: boolean;
+  eligible: number;          // domaines comparables (2+ énoncés distincts)
+  pending: number;           // éligibles dont le jugement manque ou est périmé
+  judged: number;            // jugés au dernier run
+  startedAt: number | null;
+  finishedAt: number | null;
+}
 
 // ── Couche 2 : évolution (le système d'apprentissage s'améliore-t-il ?) ──
 

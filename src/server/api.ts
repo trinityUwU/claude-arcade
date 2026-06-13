@@ -4,6 +4,7 @@ import { runScan } from "../scan.ts";
 import { loadState } from "../engine/state.ts";
 import { loadInsights, loadGraph, loadAllSummaries, loadSummary, loadChampions, loadEvolution, loadInjections, loadSessionEvents, loadPrinciples } from "../consolidate/store.ts";
 import { consolidateStatus, startConsolidation, stopConsolidation } from "../consolidate/job.ts";
+import { judgeStatus, startJudging, stopJudging } from "../consolidate/judge-job.ts";
 import { readSession } from "../scanner/session-reader.ts";
 import { cleanTranscript } from "../consolidate/transcript-view.ts";
 import { watchSessions } from "./watch.ts";
@@ -108,6 +109,16 @@ const server = Bun.serve({
       ),
     "/api/principles": async () =>
       Response.json((await loadPrinciples()) ?? { generatedAt: 0, domains: [] }),
+    "/api/principles/judge/status": async () => Response.json(await judgeStatus()),
+    "/api/principles/judge": {
+      POST: () => {
+        const started = startJudging();
+        return started
+          ? Response.json({ started: true })
+          : Response.json({ error: "déjà en cours" }, { status: 409 });
+      },
+    },
+    "/api/principles/judge/stop": { POST: () => Response.json({ stopped: stopJudging() }) },
     "/api/injections": async () => Response.json(await loadInjections()),
     "/api/session-events": async () => Response.json(await loadSessionEvents()),
     "/api/transcript/:id": async (req) => transcriptResponse(req.params.id),

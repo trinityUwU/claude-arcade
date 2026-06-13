@@ -20,9 +20,9 @@ Capturer COMMENT Chris travaille/code depuis le chatting naturel, mettre les mé
 - [x] **PUSH** : `principle-context.ts` (global cross-projet) branché dans `session-start.ts`. Trace via injections.json.
 - [x] **App** : onglet « Principes » (énoncé dominant + confiance + contradictions + instances).
 - [x] **Validé E2E réel** : 4 sessions consolidées v3 → 7 domaines, 1 récurrent 2× (0.667). Panneau 0 erreur. Injection 2984 chars. 72/72 tests.
-- [ ] **LLM-judge pour/contre + puissance** : quand 2+ process concurrents dans un domaine → comparaison qualitative (bornée, seulement en compétition).
-- [ ] **Approches multiples par problème** (`Problem.approaches`) : plusieurs manières pour un même sujet DANS une session → comparées puis recomparées cross-session.
-- [ ] **Densification** : re-consolider en v3 pour faire monter occurrences + faire émerger contradictions réelles.
+- [x] **LLM-judge pour/contre + puissance** (VAGUE 2) : `judge-prompt.ts` + `principle-judge.ts` + `judge-job.ts`. Domaine éligible (2+ énoncés distincts) → `claude -p` isolé compare (pour/contre + puissance 0-1 + reco), mémoïsé par signature, déclenché manuellement (bouton « Juger »), jamais en consolidation. Endpoints `/api/principles/judge(/status|/stop)`. Carte « Verdict » + injection de la reco arbitrée. Validé E2E réel (systemd : wrapper 74% / chemin absolu 88%). 68/68 tests.
+- [ ] **Approches multiples par problème** (`Problem.approaches`) : plusieurs manières pour un même sujet DANS une session → comparées puis recomparées cross-session. PRÉMATURÉ : data-starved + recouvre champions/judge déjà livrés. À faire APRÈS densification (sinon surcouche sans différence visible).
+- [ ] **Densification** : re-consolider en v3 pour faire monter occurrences + faire émerger contradictions réelles (manuel, appel de Chris sur le coût).
 
 ## Vision validée — voir docs/VISION.md (Consolidation & Brain)
 Système de consolidation 4 couches + digest PUSH (BRAIN.md injecté via SessionStart) + cron zéro-perte (systemd Persistent). But : courbe d'apprentissage continue.

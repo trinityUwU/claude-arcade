@@ -2,9 +2,9 @@
 // confiance (croît avec la récurrence), détecte les contradictions. Déterministe, zéro LLM.
 import type {
   SessionSummary, Principle, PrinciplePolarity,
-  PrincipleInstance, PrincipleEntry, PrinciplesData,
+  PrincipleInstance, PrincipleEntry, PrinciplesData, JudgmentsData,
 } from "./types.ts";
-import { groupingKey } from "./text-normalize.ts";
+import { groupingKey, normalizeText } from "./text-normalize.ts";
 
 function toInstance(s: SessionSummary, p: Principle): PrincipleInstance {
   return {
@@ -40,6 +40,24 @@ function dominantPolarity(instances: PrincipleInstance[]): PrinciplePolarity {
   return pos >= instances.length - pos ? "positive" : "negative";
 }
 
+/** Énoncés normalisés distincts d'un domaine — la matière comparable du jugement. */
+export function distinctStatements(instances: PrincipleInstance[]): string[] {
+  return [...new Set(instances.map((i) => normalizeText(i.statement)).filter(Boolean))];
+}
+
+/** Empreinte déterministe des instances : change ⇔ la matière à juger a changé. */
+function domainSignature(instances: PrincipleInstance[]): string {
+  return [...instances]
+    .map((i) => `${normalizeText(i.statement)}|${i.polarity}`)
+    .sort()
+    .join("§");
+}
+
+/** Un domaine mérite un jugement LLM dès qu'il oppose 2+ énoncés distincts. */
+export function eligibleForJudgment(entry: PrincipleEntry): boolean {
+  return distinctStatements(entry.instances).length >= 2;
+}
+
 function buildEntry(domain: string, instances: PrincipleInstance[]): PrincipleEntry {
   const recent = [...instances].sort((a, b) => b.at - a.at);
   const polarity = dominantPolarity(instances);
@@ -58,11 +76,18 @@ function buildEntry(domain: string, instances: PrincipleInstance[]): PrincipleEn
     confidence,
     contested,
     statedCount: instances.filter((i) => i.source === "stated").length,
+    signature: domainSignature(instances),
     instances: recent,
   };
 }
 
-export function buildPrinciples(summaries: SessionSummary[]): PrinciplesData {
+/** Réattache un jugement persisté seulement si sa signature matche encore l'état du domaine. */
+function attachJudgment(entry: PrincipleEntry, judgments?: JudgmentsData): PrincipleEntry {
+  const j = judgments?.byDomain[entry.domain];
+  return j && j.signature === entry.signature ? { ...entry, judgment: j } : entry;
+}
+
+export function buildPrinciples(summaries: SessionSummary[], judgments?: JudgmentsData): PrinciplesData {
   const groups = new Map<string, PrincipleInstance[]>();
   for (const s of summaries) {
     for (const p of s.principles ?? []) { // résumés v1/v2 sans principles → ignorés
@@ -74,7 +99,7 @@ export function buildPrinciples(summaries: SessionSummary[]): PrinciplesData {
     }
   }
   const domains = [...groups.entries()]
-    .map(([domain, instances]) => buildEntry(domain, instances))
+    .map(([domain, instances]) => attachJudgment(buildEntry(domain, instances), judgments))
     .sort((a, b) => b.occurrences - a.occurrences || b.confidence - a.confidence);
   return { generatedAt: Date.now(), domains };
 }
