@@ -99,6 +99,18 @@ export const saveGraph = (g: GraphData): Promise<void> => writeJson(graphPath(),
 export const loadInsights = (): Promise<Insights | null> => readJson<Insights>(insightsPath());
 export const loadGraph = (): Promise<GraphData | null> => readJson<GraphData>(graphPath());
 
+// Watermark du mode auto : les sessions antérieures sont laissées au déclenchement manuel.
+function watermarkPath(): string {
+  return join(stateDir(), "auto-watermark.json");
+}
+export async function loadWatermark(): Promise<number | null> {
+  const w = await readJson<{ since: number }>(watermarkPath());
+  return w && Number.isFinite(w.since) ? w.since : null;
+}
+export async function saveWatermark(since: number): Promise<void> {
+  await writeJson(watermarkPath(), { since }, "saveWatermark");
+}
+
 /** Charge tous les résumés persistés (pour les couches 2-4). */
 export async function loadAllSummaries(): Promise<SessionSummary[]> {
   const out: SessionSummary[] = [];

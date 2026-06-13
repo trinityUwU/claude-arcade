@@ -51,6 +51,8 @@ export interface RunProgress {
 
 export interface RunOptions {
   quota?: number;
+  /** Ne traiter que les sessions modifiées à partir de ce timestamp (mode auto, sans rattrapage). */
+  since?: number;
   onProgress?: (p: RunProgress) => void;
   shouldStop?: () => boolean;
 }

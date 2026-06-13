@@ -10,7 +10,7 @@ Système de consolidation 4 couches + digest PUSH (BRAIN.md injecté via Session
   - [x] Store + index idempotent zéro-perte/zéro-doublon (`store.ts`, last-consolidation.json) + quota backfill (`run.ts`)
   - [x] Unités systemd `Persistent=true` + install.sh (NON activé — go de Chris requis : dépense tokens)
   - [x] **Consolidation manuelle depuis l'app** (2026-06-13) — onglet « Conso » : compteur en attente, presets 25/50/100 + champ libre + « Tout (N) », progression live (barre + projet courant + compteurs), bouton Arrêter. Backend : `countPending`, `runConsolidation({quota,onProgress,shouldStop})`, job singleton `job.ts`, endpoints `/api/consolidate(/status|/stop)`. Quota 25/j neutralisé pour le manuel.
-  - [ ] systemd auto (optionnel maintenant que le manuel existe) : `bash systemd/install.sh` puis enable timer
+  - [x] **systemd auto ACTIVÉ** (2026-06-13, sans rattrapage) — timer quotidien `Persistent=true` enabled. Mode auto (`ARCADE_AUTO=1`) = watermark : ne consolide QUE les sessions postérieures à la baseline (posée le 13/06). Le backlog reste au déclenchement manuel. Prochain run 14/06 00:03. Auto+manuel = deux portées distinctes (auto: nouvelles ; manuel: tout).
 - [x] **Couche 2 — consolidation (liens + insights + graphe)** (livré, validé sur 19 sessions réelles)
   - [x] Normalisation texte + détection récurrence (`text-normalize.ts`) erreurs/process count≥2
   - [x] Insights : bilans projet (avgQuality), erreurs récurrentes Claude/Chris, process gagnants, notions (`insights.ts`)

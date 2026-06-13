@@ -29,14 +29,15 @@ function quota(): number {
 }
 
 /** Nombre de sessions en attente de consolidation (sans les traiter). */
-export async function countPending(): Promise<number> {
+export async function countPending(since?: number): Promise<number> {
   const idx = await loadIndex();
   const files = await listSessionFiles();
-  return (await selectPending(files, idx)).length;
+  return (await selectPending(files, idx, since)).length;
 }
 
-/** Sessions à traiter : non vues / modifiées, stables, triées récentes d'abord. */
-async function selectPending(files: string[], idx: ConsolidationIndex): Promise<Pending[]> {
+/** Sessions à traiter : non vues / modifiées, stables, triées récentes d'abord.
+ *  `sinceMs` (mode auto) : ignore tout ce qui est antérieur au watermark = zéro rattrapage. */
+async function selectPending(files: string[], idx: ConsolidationIndex, sinceMs?: number): Promise<Pending[]> {
   const pending: Pending[] = [];
   for (const file of files) {
     const fp = await fileFingerprint(file);
@@ -44,6 +45,7 @@ async function selectPending(files: string[], idx: ConsolidationIndex): Promise<
     if (isProcessed(idx, file, fp)) continue;
     const mtime = Number(fp.split(":")[0]);
     if (Date.now() - mtime < FRESH_MS) continue; // session en cours d'écriture
+    if (sinceMs && mtime < sinceMs) continue; // antérieur au watermark auto → laissé au manuel
     pending.push({ file, fp, mtime });
   }
   return pending.sort((a, b) => b.mtime - a.mtime);
@@ -79,7 +81,7 @@ export async function runConsolidation(opts: RunOptions = {}): Promise<Consolida
   const limit = opts.quota && opts.quota > 0 ? Math.floor(opts.quota) : quota();
   const idx = await loadIndex();
   const files = await listSessionFiles();
-  const pending = await selectPending(files, idx);
+  const pending = await selectPending(files, idx, opts.since);
   const batch = pending.slice(0, limit);
   logger.info({ pending: pending.length, batch: batch.length, model }, "consolidation démarrée");
 

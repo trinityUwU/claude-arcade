@@ -1,11 +1,25 @@
 // CLI de consolidation : `bun run consolidate`. Résume un lot de sessions en attente.
+// Mode auto (ARCADE_AUTO=1, utilisé par le timer systemd) : ne traite que les sessions
+// postérieures au watermark = zéro rattrapage. Sans le flag, traite tout le backlog (manuel).
 import { runConsolidation } from "./run.ts";
+import { loadWatermark, saveWatermark } from "./store.ts";
 import { logger } from "../logger.ts";
 
 const C = { dim: "\x1b[38;5;245m", b: "\x1b[1m", g: "\x1b[38;5;42m", r: "\x1b[38;5;203m", x: "\x1b[0m" };
 
 try {
-  const run = await runConsolidation();
+  let since: number | undefined;
+  if (process.env.ARCADE_AUTO === "1") {
+    const wm = await loadWatermark();
+    if (wm == null) {
+      const now = Date.now();
+      await saveWatermark(now);
+      logger.info({ since: now }, "watermark auto initialisé — baseline posée, aucun rattrapage");
+      process.exit(0);
+    }
+    since = wm;
+  }
+  const run = await runConsolidation({ since });
   const line = [
     `${C.b}${run.summarized}${C.x} résumées`,
     `${run.skipped} sautées`,

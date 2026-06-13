@@ -5,7 +5,8 @@
 - **Constat** : les consolidations auto N'AVAIENT JAMAIS tourné (timer systemd jamais installé/activé). Seuls 19 résumés existaient (batch de test du 12/06 15h24).
 - **Rattrapage lancé** (quota 80, ratio 25/j neutralisé) : 21 résumées + 59 sautées (sessions vides/triviales), 0 échec. Sessions d'hier capturées (hermes 15h42 → q80, ccremote vague 2-5 → q85). 40 résumés au total, reste ~559 en attente.
 - **Feature livrée — consolidation manuelle depuis l'app** (onglet « Conso ») : compteur en attente, presets 25/50/100 + champ libre + « Tout (N) », progression live, bouton Arrêter. Backend : `countPending`, `runConsolidation({quota,onProgress,shouldStop})`, job singleton (`src/consolidate/job.ts`), endpoints `/api/consolidate`, `/api/consolidate/status`, `/api/consolidate/stop`. Validé : typecheck 0, Playwright zéro erreur console, flux run→progress→done E2E OK.
-- systemd auto devient optionnel (le manuel couvre le besoin de rattrapage).
+- **systemd auto ACTIVÉ sans rattrapage** : timer quotidien `Persistent=true` enabled (prochain run 14/06 00:03, rattrape au réveil). Mode auto (`ARCADE_AUTO=1`) = WATERMARK posé à maintenant (`auto-watermark.json`) → ne consolide que les sessions postérieures. Le backlog (557) reste accessible au déclenchement MANUEL via l'app. Deux portées distinctes. `selectPending(files, idx, sinceMs?)`, `loadWatermark/saveWatermark` dans store.ts, CLI `ARCADE_AUTO=1` pose la baseline au 1er run puis filtre. Note env : `systemctl --user` exige `XDG_RUNTIME_DIR=/run/user/1000` dans un shell non-interactif.
+- L'auto est le cœur du projet (PUSH continu) ; le manuel ne sert qu'au rattrapage ponctuel — les deux sont nécessaires.
 
 ## Résumé de l'état actuel
 Projet neuf. Phase 1 (moteur de scan + CLI) en cours. Objectif : reproduire en local, Claude-Code-only, le dashboard arcade de hermes-achievements + une boucle d'auto-amélioration via hook SessionEnd.

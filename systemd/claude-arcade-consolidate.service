@@ -11,7 +11,10 @@ WorkingDirectory=/mnt/projects/claude-arcade
 # Volontairement SANS ANTHROPIC_BASE_URL → claude utilise l'abonnement cloud,
 # jamais le modèle local. Le modèle `sonnet` forwarde de toute façon vers Anthropic.
 Environment=PATH=/usr/local/bin:/home/trinity/.bun/bin:/home/trinity/.local/bin:/usr/bin:/bin
-Environment=ARCADE_BACKFILL_QUOTA=25
+# Mode auto : ne consolide QUE les sessions postérieures au watermark (zéro rattrapage
+# du backlog — celui-ci se fait à la demande depuis l'app, onglet « Conso »).
+Environment=ARCADE_AUTO=1
+Environment=ARCADE_BACKFILL_QUOTA=50
 ExecStart=/home/trinity/.bun/bin/bun run consolidate
 TimeoutStartSec=1800
 Nice=10
