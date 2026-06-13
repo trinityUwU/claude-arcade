@@ -3,6 +3,9 @@
 
 > **NORTH STAR** (`docs/NORTH-STAR.md`, immuable) : organe d'apprentissage continu temps réel sur Claude Code. Critère unique = courbe d'apprentissage PROUVÉE (session N+1 > N). Zéro modèle local, backfill manuel only, intégration via hooks, demande visuelle = graphiques de résolution. Plan magistral 4 phases dans TODO.md.
 
+## Session 2026-06-13 (suite) — ONGLET APPRENTISSAGE INTERACTIF (LIVRÉ)
+Même drill-down sur la courbe. `LearningEncounter` gagne `topic` (propagé par learning.ts). `LearningPanel` : courbes DÉPLIABLES (chevron) → liste des rencontres avec provenance (`SourceBadge` projet+date + sujet + fitness + tours + injecté + outcome), chaque rencontre cliquable → `SessionDrawer`. Sparkline : barres cliquables (stopPropagation) → session source. Validé E2E réel : « workflow edition fichier » déplie 2 rencontres (StockIOP / echo-trading), clic → drawer (qualité 72 + transcript). 91 tests, tsc 0, 0 page-error.
+
 ## Session 2026-06-13 (suite) — CARTES DE RÉSOLUTION CLIQUABLES → SESSION SOURCE (LIVRÉ)
 Remonter du schéma à la conversation d'origine en un clic.
 - Extraction de la logique détail-session de `NodeDetail.tsx` vers `SessionDetail.tsx` partagé (résumé `/api/session/:id` + transcript repliable `/api/transcript/:id`) + `SessionDrawer` (panneau latéral réutilisable). NodeDetail refactoré (zéro duplication).

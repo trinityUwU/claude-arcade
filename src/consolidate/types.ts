@@ -324,6 +324,7 @@ export interface EvolutionData {
 export interface LearningEncounter {
   sessionId: string;
   project: string;
+  topic: string;         // sujet de la session source (contexte « à quoi c'est lié »)
   at: number;            // date réelle de session (startTs sinon summarizedAt)
   fitness: number;
   turns: number;

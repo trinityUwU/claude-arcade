@@ -87,7 +87,7 @@ claude-arcade/
 │                             · BrainGraph.tsx (graphe Obsidian 2D, clic→détail) · NodeDetail.tsx (drawer nœud du graphe)
 │                             · SessionDetail.tsx (partagé : résumé session + transcript repliable + SessionDrawer latéral réutilisable)
 │                             · ConsolidatePanel.tsx (déclenchement manuel : presets + quota libre + progression + stop)
-│                             · LearningPanel.tsx (P3 « Apprentissage » : KPI causaux + lift d'injection + sparkline par classe — la preuve)
+│                             · LearningPanel.tsx (P3 « Apprentissage » : KPI causaux + lift + courbes dépliables → rencontres cliquables (source+topic) → drawer session)
 │                             · SessionsPanel.tsx (difficulté + problèmes + resolution_schema) · ProblemsPanel.tsx (catégories/sévérité)
 │                             · SchemasPanel.tsx (champion + breakdown fitness severity-aware en barres) · EvolutionPanel.tsx (signaux + courbe SVG)
 │                             · ResolutionFlow.tsx (P2 timeline verticale d'un chemin de résolution) · ResolutionsPanel.tsx (P2 « Résolutions » : champion vs concurrents par classe)
