@@ -23,7 +23,8 @@
 - [ ] Gate de graduation : principe/champion diplômé (confiance haute + jugé + lift prouvé).
 - [ ] Génération patch via `/prompt-architect` (réécriture sémantique) + **gate anti-bloat** (rejet si rallonge sans gain).
 - [ ] Journal des propositions (statuts applique-auto/manuel/rejete/recale-gate/attente) + **3 toggles auto/manuel par catégorie** (patch/création/élagage), auto défaut.
-- [ ] Application auto/manuel → commit git. Whitelist (tout sauf CLAUDE.md). Élagage = **archivage** (`skills/.archived/`), jamais rm.
+- [x] **Backup config** (`src/config/backup.ts`) : snapshot tar.gz complet horodaté + rétention 30 + `listBackups`. Baseline tirée.
+- [ ] Application auto/manuel → **`snapshotConfig()` AVANT chaque write-back + commit git** (double filet, demande Chris). Whitelist (tout sauf CLAUDE.md). Élagage = **archivage** (`skills/.archived/`), jamais rm.
 - [ ] Mesure fitness post-révision via courbe Phase 3 → revert signalé si baisse.
 - [ ] tests + E2E.
 

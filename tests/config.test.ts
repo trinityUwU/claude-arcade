@@ -4,12 +4,16 @@ import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { scanConfig } from "../src/config/scan.ts";
+import { snapshotConfig, listBackups } from "../src/config/backup.ts";
 
 let root: string;
+let state: string;
 
 beforeAll(async () => {
   root = await mkdtemp(join(tmpdir(), "arcade-cfg-"));
+  state = await mkdtemp(join(tmpdir(), "arcade-state-"));
   process.env.ARCADE_CONFIG_ROOT = root;
+  process.env.ARCADE_STATE_DIR = state;
   await writeFile(join(root, "CLAUDE.md"), "# instructions globales\n");
   await mkdir(join(root, "rules"), { recursive: true });
   await writeFile(join(root, "rules", "code-standards.md"), "limites dures\n");
@@ -25,7 +29,9 @@ beforeAll(async () => {
 
 afterAll(async () => {
   delete process.env.ARCADE_CONFIG_ROOT;
+  delete process.env.ARCADE_STATE_DIR;
   await rm(root, { recursive: true, force: true });
+  await rm(state, { recursive: true, force: true });
 });
 
 test("scanConfig : classe chaque fichier par kind", async () => {
@@ -61,4 +67,14 @@ test("scanConfig : CLAUDE.md et settings hors whitelist patchable, skill/rule pa
 
 test("scanConfig : non versionné sur un dossier sans git", async () => {
   expect((await scanConfig()).versioned).toBe(false);
+});
+
+test("snapshotConfig : crée une archive non vide et listBackups la voit", async () => {
+  const out = await snapshotConfig("test");
+  expect(out).toBeTruthy();
+  expect(out!.endsWith(".tar.gz")).toBe(true);
+  expect((await Bun.file(out!).size) > 0).toBe(true);
+  const backups = await listBackups();
+  expect(backups.length).toBeGreaterThanOrEqual(1);
+  expect(backups[0]!.bytes).toBeGreaterThan(0);
 });
