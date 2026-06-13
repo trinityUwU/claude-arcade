@@ -35,6 +35,7 @@ export function App(): React.JSX.Element {
   const [view, setView] = useState<View>("arcade");
   const [scanning, setScanning] = useState(false);
   const [live, setLive] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
 
   const load = useCallback(async (url: string, method = "GET") => {
     try {
@@ -80,9 +81,13 @@ export function App(): React.JSX.Element {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Sidebar data={data} active={cat} onPick={setCat} view={view} onView={setView} />
+      {navOpen && (
+        <div className="fixed inset-0 z-30 bg-black/50 md:hidden" onClick={() => setNavOpen(false)} />
+      )}
+      <Sidebar data={data} active={cat} onPick={setCat} view={view} onView={setView}
+        open={navOpen} onClose={() => setNavOpen(false)} />
       <main className="flex flex-1 flex-col overflow-hidden">
-        <Topbar data={data} onRescan={rescan} scanning={scanning} live={live} />
+        <Topbar data={data} onRescan={rescan} scanning={scanning} live={live} onMenu={() => setNavOpen(true)} />
         <ViewRouter view={view} shown={shown} />
       </main>
     </div>

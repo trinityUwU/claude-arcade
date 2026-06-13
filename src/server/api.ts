@@ -1,5 +1,8 @@
-// Serveur dashboard : sert le front React + l'API + un flux SSE temps réel. 100% local.
+// Serveur dashboard : sert le front React + l'API + un flux SSE temps réel.
+// Accessible sur le LAN (lecture) ; les écritures dans ~/.claude restent réservées au localhost.
 import { join, resolve } from "node:path";
+import { networkInterfaces } from "node:os";
+import type { Server } from "bun";
 import index from "../../web/index.html";
 import { runScan } from "../scan.ts";
 import { loadState, stateDir } from "../engine/state.ts";
@@ -28,6 +31,9 @@ import type { SchemaInstance } from "../consolidate/types.ts";
 import type { ConfigFile } from "../config/types.ts";
 
 const PORT = Number(process.env.ARCADE_PORT ?? 4317);
+const HOST = process.env.ARCADE_HOST?.trim() || "0.0.0.0"; // toutes les interfaces (accès LAN)
+// Garde-fou : les écritures dans ~/.claude ne sont permises qu'en local, sauf ouverture explicite.
+const ALLOW_REMOTE_WRITES = process.env.ARCADE_ALLOW_REMOTE_WRITES === "1";
 const encoder = new TextEncoder();
 const clients = new Set<ReadableStreamDefaultController<Uint8Array>>();
 
@@ -144,6 +150,21 @@ async function configSettingsResponse(req: Request): Promise<Response> {
   return Response.json(await saveSettings(patch));
 }
 
+/** Vrai si la requête vient de la machine locale (loopback). */
+function isLocalRequest(server: Server<unknown>, req: Request): boolean {
+  const ip = server.requestIP(req)?.address ?? "";
+  return ip === "127.0.0.1" || ip === "::1" || ip === "::ffff:127.0.0.1";
+}
+
+/** 403 si une écriture config est tentée à distance (sauf ARCADE_ALLOW_REMOTE_WRITES=1). */
+function denyRemoteWrite(server: Server<unknown>, req: Request): Response | null {
+  if (ALLOW_REMOTE_WRITES || isLocalRequest(server, req)) return null;
+  return new Response(
+    "écriture config réservée au localhost (ARCADE_ALLOW_REMOTE_WRITES=1 pour ouvrir au réseau)",
+    { status: 403 },
+  );
+}
+
 function broadcast(result: ScanResult): void {
   const msg = encoder.encode(`event: update\ndata: ${JSON.stringify(result)}\n\n`);
   for (const c of clients) {
@@ -174,6 +195,7 @@ function streamResponse(): Response {
 
 const server = Bun.serve({
   port: PORT,
+  hostname: HOST,
   development: { hmr: false },
   routes: {
     "/": index,
@@ -240,18 +262,25 @@ const server = Bun.serve({
     "/api/config/coverage": async () => configCoverageResponse(),
     "/api/config/banned": {
       GET: async () => Response.json(await loadBanned()),
-      POST: async (req) => {
+      POST: async (req, server) => {
+        const denied = denyRemoteWrite(server, req);
+        if (denied) return denied;
         const body = (await req.json().catch(() => ({}))) as { classId?: string; banned?: boolean };
         if (!body.classId) return Response.json({ error: "classId requis" }, { status: 400 });
         return Response.json(await setBanned(body.classId, body.banned !== false));
       },
     },
     "/api/config/proposals": async () => configProposalsResponse(),
-    "/api/config/proposals/apply": { POST: async (req) => applyOneResponse(req) },
-    "/api/config/evolve": { POST: async () => Response.json(await runEvolution((await getScan()).topSkills)) },
+    "/api/config/proposals/apply": { POST: async (req, server) => denyRemoteWrite(server, req) ?? applyOneResponse(req) },
+    "/api/config/evolve": {
+      POST: async (req, server) =>
+        denyRemoteWrite(server, req) ?? Response.json(await runEvolution((await getScan()).topSkills)),
+    },
     "/api/config/revisions": async () => Response.json(assessRevisions(await loadJournal(), await loadAllSummaries())),
     "/api/config/revert": {
-      POST: async (req) => {
+      POST: async (req, server) => {
+        const denied = denyRemoteWrite(server, req);
+        if (denied) return denied;
         const { hash } = (await req.json().catch(() => ({}))) as { hash?: string };
         if (!hash) return Response.json({ error: "hash requis" }, { status: 400 });
         return Response.json({ reverted: await revertCommit(hash) });
@@ -259,7 +288,7 @@ const server = Bun.serve({
     },
     "/api/config/settings": {
       GET: async () => Response.json(await loadSettings()),
-      POST: async (req) => configSettingsResponse(req),
+      POST: async (req, server) => denyRemoteWrite(server, req) ?? configSettingsResponse(req),
     },
   },
   error(err) {
@@ -276,5 +305,19 @@ watchSessions(() => {
   lastRescan = now;
   void getScan(true).then(broadcast);
 });
-logger.info({ url: `http://localhost:${server.port}` }, "claude-arcade dashboard en ligne");
+/** Première IPv4 LAN non-loopback, pour afficher l'URL réseau au démarrage. */
+function lanAddress(): string | null {
+  for (const ifaces of Object.values(networkInterfaces())) {
+    for (const i of ifaces ?? []) {
+      if (i.family === "IPv4" && !i.internal) return i.address;
+    }
+  }
+  return null;
+}
+
+const lan = lanAddress();
+logger.info(
+  { local: `http://localhost:${server.port}`, lan: lan ? `http://${lan}:${server.port}` : "—", remoteWrites: ALLOW_REMOTE_WRITES },
+  "claude-arcade dashboard en ligne (LAN : lecture ouverte, écritures config localhost-only sauf override)",
+);
 void getScan();

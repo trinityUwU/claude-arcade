@@ -12,6 +12,7 @@ export type View =
 interface SidebarProps {
   data: ScanResult; active: string; onPick: (c: string) => void;
   view: View; onView: (v: View) => void;
+  open: boolean; onClose: () => void;
 }
 
 interface NavEntry { view: View; label: string; Icon: typeof LayoutGrid; }
@@ -76,10 +77,14 @@ function CategoryBlock({ data, active, onPick }: Pick<SidebarProps, "data" | "ac
   );
 }
 
-export function Sidebar({ data, active, onPick, view, onView }: SidebarProps): React.JSX.Element {
+export function Sidebar({ data, active, onPick, view, onView, open, onClose }: SidebarProps): React.JSX.Element {
   const s = data.score;
+  const pick = (c: string): void => { onPick(c); onClose(); };
+  const goto = (v: View): void => { onView(v); onClose(); };
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-r border-white/[0.07] bg-black/20 px-3 py-5">
+    <aside className={`fixed inset-y-0 left-0 z-40 flex w-60 shrink-0 flex-col border-r border-white/[0.07]
+      bg-[#0b0b12] px-3 py-5 transition-transform md:static md:z-auto md:bg-black/20
+      ${open ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}>
       <div className="mb-4 flex items-center gap-2 px-2.5">
         <div className="flex size-8 items-center justify-center rounded-lg bg-fuchsia-400/12 text-fuchsia-200">
           <Gamepad2 size={18} strokeWidth={2} />
@@ -90,13 +95,13 @@ export function Sidebar({ data, active, onPick, view, onView }: SidebarProps): R
         <GroupHeader label="Arcade" />
         {ARCADE_NAV.map((e) => (
           <NavItem key={e.view} label={e.label} active={view === e.view}
-            onClick={() => onView(e.view)} Icon={e.Icon} />
+            onClick={() => goto(e.view)} Icon={e.Icon} />
         ))}
-        {view === "arcade" && <CategoryBlock data={data} active={active} onPick={onPick} />}
+        {view === "arcade" && <CategoryBlock data={data} active={active} onPick={pick} />}
         <GroupHeader label="Apprentissage" />
         {LEARN_NAV.map((e) => (
           <NavItem key={e.view} label={e.label} active={view === e.view}
-            onClick={() => onView(e.view)} Icon={e.Icon} />
+            onClick={() => goto(e.view)} Icon={e.Icon} />
         ))}
       </nav>
       <div className="mt-4 rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">

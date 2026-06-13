@@ -156,7 +156,7 @@ function CoverageView(): React.JSX.Element {
   const creatable = data.gaps.filter((g) => g.creatable).length;
 
   return (
-    <div className="flex-1 overflow-y-auto px-8 py-6">
+    <div className="flex-1 overflow-y-auto px-4 py-5 md:px-8 md:py-6">
       <section className="mb-8">
         <h2 className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-white/85">
           <TriangleAlert size={15} className="text-amber-300" /> Gaps — classes récurrentes sans skill ({creatable} créables / {data.gaps.length})
@@ -173,7 +173,7 @@ function CoverageView(): React.JSX.Element {
         <p className="mb-3 text-[11px] text-white/40">0 invocation via le tool Skill. Les agents et skills llm-* sont chargés silencieusement → jamais archivés auto.</p>
         {data.dead.length === 0
           ? <p className="text-[12px] text-white/35">Aucun skill mort détecté.</p>
-          : <div className="grid grid-cols-2 gap-2 xl:grid-cols-3">
+          : <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
               {data.dead.map((d) => (
                 <div key={d.relPath} className={`rounded-lg border px-3 py-2 ${d.silentLoad ? "border-white/[0.05] bg-white/[0.01] opacity-60" : "border-white/[0.07] bg-white/[0.02]"}`}>
                   <div className="flex items-center justify-between gap-2">
@@ -271,7 +271,7 @@ function EvolutionView(): React.JSX.Element {
   const pending = props.filter((p) => p.status === "pending").length;
 
   return (
-    <div className="flex-1 overflow-y-auto px-8 py-6">
+    <div className="flex-1 overflow-y-auto px-4 py-5 md:px-8 md:py-6">
       <section className="mb-7 max-w-xl">
         <h2 className="mb-3 flex items-center gap-2 text-[13px] font-semibold text-white/85">
           <Power size={15} className={settings.autoGenerate ? "text-fuchsia-300" : "text-white/30"} /> Évolution automatique
@@ -410,8 +410,8 @@ export function ConfigPanel(): React.JSX.Element {
         <ModeBtn active={mode === "evolution"} onClick={() => setMode("evolution")} Icon={GitMerge} label="Auto-évolution" />
       </div>
       {mode === "evolution" ? <EvolutionView /> : mode === "coverage" ? <CoverageView /> : (
-      <div className="flex flex-1 overflow-hidden">
-      <div className="flex w-72 shrink-0 flex-col gap-1 overflow-y-auto border-r border-white/[0.07] px-3 py-5">
+      <div className="flex flex-1 flex-col overflow-y-auto md:flex-row md:overflow-hidden">
+      <div className="flex w-full shrink-0 flex-col gap-1 overflow-y-auto border-b border-white/[0.07] px-3 py-4 md:w-72 md:border-b-0 md:border-r md:py-5">
         <header className="mb-3 flex items-center gap-2 px-1">
           <SlidersHorizontal size={18} className="text-fuchsia-200" />
           <div>
@@ -433,7 +433,7 @@ export function ConfigPanel(): React.JSX.Element {
           </div>
         ))}
       </div>
-      <div className="flex-1 overflow-hidden px-8 py-6">
+      <div className="flex-1 overflow-hidden px-4 py-5 md:px-8 md:py-6">
         {selected
           ? <Detail entry={selected} file={file} history={history} />
           : <div className="flex h-full flex-col items-center justify-center gap-2 text-white/35">

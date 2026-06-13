@@ -85,7 +85,7 @@ claude-arcade/
 │   │   ├── revisions.ts      assessRevisions : qualité sessions avant/après application → flag régression · /api/config/{revisions,revert}
 │   │   └── types.ts          ConfigEntry/ConfigTree/ConfigCommit/ConfigFile
 │   ├── server/
-│   │   ├── api.ts            Bun.serve port 4317 : front + API + SSE + endpoints /api/{canonical,learning,config(/file|/history),consolidate…}
+│   │   ├── api.ts            Bun.serve 0.0.0.0:4317 (LAN) : front + API + SSE + /api/config/* · garde écriture localhost-only (denyRemoteWrite, ARCADE_ALLOW_REMOTE_WRITES)
 │   │   └── watch.ts          Surveille ~/.claude/projects → déclenche rescan auto sur activité
 ├── bin/
 │   └── arcade-note           Wrapper bash du CLI de notes (symlink ~/.local/bin/arcade-note → appelable partout)
