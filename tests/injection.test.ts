@@ -15,7 +15,7 @@ function schema(over: Partial<ResolutionSchema> = {}): ResolutionSchema {
 
 function instance(over: Partial<SchemaInstance> = {}): SchemaInstance {
   return {
-    sessionId: "s1", project: "/p/a", problemId: "p1", description: "desc",
+    sessionId: "s1", project: "/p/a", topic: "sujet test", problemId: "p1", description: "desc",
     category: "cat", severity: "minor", resolution: schema(),
     fitness: 0.5, sessionQuality: 50, at: 0, ...over,
   };

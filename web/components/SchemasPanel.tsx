@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Trophy, Crown, TrendingUp } from "lucide-react";
 import type { ChampionsData, ChampionEntry, SchemaInstance } from "../../src/consolidate/types.ts";
 import { fitnessBreakdown, type FitnessBreakdown } from "../../src/consolidate/fitness.ts";
-import { fitnessColor, fitnessBg, OutcomeBadge, SeverityBadge, SectionHeader } from "../lib/format.tsx";
+import { fitnessColor, fitnessBg, OutcomeBadge, SeverityBadge, SectionHeader, SourceBadge } from "../lib/format.tsx";
 import { PanelMessage } from "./SessionsPanel.tsx";
 
 const BAR_ROWS: { key: keyof Pick<FitnessBreakdown, "turns" | "backtracks" | "toolErrors" | "quality">; label: string }[] = [
@@ -47,6 +47,7 @@ function SchemaCard({ c, isChampion }: { c: SchemaInstance; isChampion: boolean 
         </div>
         <div className="flex shrink-0 gap-1"><SeverityBadge severity={c.severity} /><OutcomeBadge outcome={rs.outcome} /></div>
       </div>
+      <div className="mt-2"><SourceBadge project={c.project} at={c.at} /></div>
       {rs.steps.length > 0 && (
         <ol className="mt-2 space-y-0.5">
           {rs.steps.map((st, i) => (

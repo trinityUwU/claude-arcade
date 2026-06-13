@@ -199,6 +199,7 @@ export interface GraphData {
 export interface SchemaInstance {
   sessionId: string;
   project: string;
+  topic: string;        // sujet de la session source (contexte « à quoi c'est lié »)
   problemId: string;
   description: string;
   category: string;

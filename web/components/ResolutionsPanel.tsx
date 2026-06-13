@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { GitBranch } from "lucide-react";
 import type { ChampionsData, ChampionEntry, CanonicalRegistry } from "../../src/consolidate/types.ts";
-import { SectionHeader } from "../lib/format.tsx";
+import { SectionHeader, SourceBadge } from "../lib/format.tsx";
 import { ResolutionFlow } from "./ResolutionFlow.tsx";
 import { PanelMessage } from "./SessionsPanel.tsx";
 
@@ -26,6 +26,23 @@ function ClassList({ entries, selected, onPick }:
   );
 }
 
+/** Liste les projets/cibles distincts où la classe est apparue (du plus fréquent au moins). */
+function SourceSummary({ entry }: { entry: ChampionEntry }): React.JSX.Element | null {
+  const counts = new Map<string, { at: number; n: number }>();
+  for (const c of entry.contenders) {
+    const cur = counts.get(c.project) ?? { at: 0, n: 0 };
+    counts.set(c.project, { at: Math.max(cur.at, c.at), n: cur.n + 1 });
+  }
+  const sources = [...counts.entries()].sort((a, b) => b[1].n - a[1].n);
+  if (sources.length === 0) return null;
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-1.5">
+      <span className="mr-1 text-[11px] text-white/35">Rencontré dans :</span>
+      {sources.map(([project, v]) => <SourceBadge key={project} project={project} at={v.at} />)}
+    </div>
+  );
+}
+
 function ClassDetail({ entry, definition }:
   { entry: ChampionEntry; definition: string | null }): React.JSX.Element {
   const others = entry.champion
@@ -38,11 +55,13 @@ function ClassDetail({ entry, definition }:
         <h2 className="text-[15px] font-bold text-white/90">{entry.label}</h2>
         <span className="text-[11px] tabular-nums text-white/40">{entry.occurrences} rencontre(s)</span>
       </div>
-      {definition && <p className="mb-4 max-w-2xl text-[12px] leading-relaxed text-white/45">{definition}</p>}
+      {definition && <p className="mb-3 max-w-2xl text-[12px] leading-relaxed text-white/45">{definition}</p>}
+      <SourceSummary entry={entry} />
 
       {entry.champion && (
         <ResolutionFlow rs={entry.champion.resolution} title={entry.champion.description}
-          isChampion fitness={entry.champion.fitness} />
+          isChampion fitness={entry.champion.fitness} project={entry.champion.project}
+          at={entry.champion.at} topic={entry.champion.topic} />
       )}
       {others.length === 0 && entry.champion && (
         <p className="mt-2 text-[12px] italic text-white/40">
@@ -55,7 +74,7 @@ function ClassDetail({ entry, definition }:
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3">
             {others.sort((a, b) => b.fitness - a.fitness).map((c) => (
               <ResolutionFlow key={`${c.sessionId}:${c.problemId}`} rs={c.resolution}
-                title={c.description} fitness={c.fitness} />
+                title={c.description} fitness={c.fitness} project={c.project} at={c.at} topic={c.topic} />
             ))}
           </div>
         </div>

@@ -3,6 +3,12 @@
 
 > **NORTH STAR** (`docs/NORTH-STAR.md`, immuable) : organe d'apprentissage continu temps réel sur Claude Code. Critère unique = courbe d'apprentissage PROUVÉE (session N+1 > N). Zéro modèle local, backfill manuel only, intégration via hooks, demande visuelle = graphiques de résolution. Plan magistral 4 phases dans TODO.md.
 
+## Session 2026-06-13 (suite) — PROVENANCE DES RÉSOLUTIONS (LIVRÉ)
+Retour Chris : on ne voyait pas à quoi une résolution était liée (projet, cible, contexte). Ajout de la traçabilité de source.
+- `SchemaInstance` gagne `topic` (sujet de session, propagé par `champions.ts`). `format.tsx` : `SourceBadge` (basename du cwd + date + icône par famille : Boxes=/mnt/projects, Target=bug bounty/cible, Folder=autre, tooltip=chemin complet).
+- `ResolutionFlow` : badge source + sujet de session en italique sur chaque carte. `ResolutionsPanel` : ligne « Rencontré dans : » (projets distincts) au niveau classe. `SchemasPanel` : badge source sur chaque SchemaCard.
+- Validé E2E réel : « workflow edition fichier » montre projects/StockIOP + sujets de session lisibles. 91 tests, tsc 0, 0 page-error. (rebuild champions pour peupler topic.)
+
 ## Session 2026-06-13 (suite) — PHASE 4 : FITNESS ANCRÉE SUR LES RÉSULTATS (LIVRÉ)
 Corrige le biais de fond : l'ancienne fitness récompensait la FACILITÉ (1/tours) → un problème dur bien résolu perdait contre un trivial.
 - `fitness.ts` : effort (tours, retours) désormais normalisé par un BUDGET de sévérité (`SEVERITY_BUDGET` trivial 1/0, minor 3/1, major 8/3). `parts.turns = 0.35·min(1, budget/tours)`, idem retours. Plein score si dans l'enveloppe attendue, dégradation au-delà. Borné [0,1]. `computeFitness`/`fitnessBreakdown` prennent `severity` (défaut "minor" → rétro-compat). Erreurs d'outil + qualité inchangées (indépendantes de la difficulté).

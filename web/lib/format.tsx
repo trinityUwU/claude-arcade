@@ -1,4 +1,5 @@
 // Helpers d'affichage partagés par les panneaux d'apprentissage (couleurs sémantiques, badges, dates).
+import { Folder, Target, Boxes } from "lucide-react";
 import type {
   ResolutionOutcome, ProblemSeverity, DifficultyLevel,
 } from "../../src/consolidate/types.ts";
@@ -6,6 +7,27 @@ import type {
 export function basename(path: string): string {
   const parts = path.split("/").filter(Boolean);
   return parts[parts.length - 1] ?? path;
+}
+
+/** Devine la famille de contexte d'un cwd : bug bounty (test sur cible), projet /mnt/projects, ou autre. */
+function sourceKind(path: string): { Icon: typeof Folder; tone: string } {
+  if (/bug.?bounty|engagement|target/i.test(path)) return { Icon: Target, tone: "text-rose-300/80" };
+  if (/\/mnt\/projects\//.test(path)) return { Icon: Boxes, tone: "text-sky-300/80" };
+  return { Icon: Folder, tone: "text-white/45" };
+}
+
+/** Badge de provenance : d'où vient une résolution (projet / cible) + date. Tooltip = chemin complet. */
+export function SourceBadge({ project, at }: { project: string; at?: number }): React.JSX.Element {
+  const name = basename(project) || "session locale";
+  const { Icon, tone } = sourceKind(project);
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.03] px-1.5 py-0.5"
+      title={project || "cwd inconnu"}>
+      <Icon size={11} strokeWidth={2} className={tone} />
+      <span className="max-w-[180px] truncate text-[10.5px] font-medium text-white/65">{name}</span>
+      {at !== undefined && at > 0 && <span className="text-[10px] tabular-nums text-white/30">{formatDate(at)}</span>}
+    </span>
+  );
 }
 
 export function qualityColor(q: number): string {

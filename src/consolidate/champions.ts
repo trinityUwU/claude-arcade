@@ -11,6 +11,7 @@ function toInstance(s: SessionSummary, p: Problem): SchemaInstance {
   return {
     sessionId: s.sessionId,
     project: s.project,
+    topic: s.topic,
     problemId: p.id,
     description: p.description,
     category: p.category,

@@ -4,7 +4,7 @@
 import { motion } from "framer-motion";
 import { Check, CircleDashed, X, CornerDownLeft, TriangleAlert, Crown, Wrench } from "lucide-react";
 import type { ResolutionSchema, ResolutionOutcome } from "../../src/consolidate/types.ts";
-import { OutcomeBadge } from "../lib/format.tsx";
+import { OutcomeBadge, SourceBadge } from "../lib/format.tsx";
 
 const RAIL: Record<ResolutionOutcome, string> = {
   resolved: "bg-emerald-400/40", partial: "bg-amber-300/40", unresolved: "bg-rose-400/40",
@@ -60,13 +60,14 @@ function OutcomeNode({ outcome }: { outcome: ResolutionOutcome }): React.JSX.Ele
   );
 }
 
-export function ResolutionFlow({ rs, title, isChampion, fitness }:
-  { rs: ResolutionSchema; title?: string; isChampion?: boolean; fitness?: number }): React.JSX.Element {
+export function ResolutionFlow({ rs, title, isChampion, fitness, project, at, topic }:
+  { rs: ResolutionSchema; title?: string; isChampion?: boolean; fitness?: number;
+    project?: string; at?: number; topic?: string }): React.JSX.Element {
   return (
     <div className={`rounded-xl border p-4 ${isChampion
       ? "border-fuchsia-400/30 bg-fuchsia-400/[0.04]" : "border-white/[0.07] bg-white/[0.02]"}`}>
       {title && (
-        <div className="mb-3 flex items-start justify-between gap-2">
+        <div className="mb-2 flex items-start justify-between gap-2">
           <div className="flex items-start gap-2">
             {isChampion && <Crown size={15} strokeWidth={2} className="mt-0.5 shrink-0 text-fuchsia-200" />}
             <p className="text-[12.5px] font-medium leading-snug text-white/85">{title}</p>
@@ -75,6 +76,12 @@ export function ResolutionFlow({ rs, title, isChampion, fitness }:
             <span className="shrink-0 rounded-md border border-white/10 bg-white/[0.03] px-1.5 py-0.5
               text-[10px] tabular-nums text-white/55">fit {fitness.toFixed(3)}</span>
           )}
+        </div>
+      )}
+      {project !== undefined && (
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <SourceBadge project={project} at={at} />
+          {topic && <span className="truncate text-[11px] italic text-white/40" title={topic}>« {topic} »</span>}
         </div>
       )}
 
