@@ -27,10 +27,15 @@
 - [x] Filtre **chargement silencieux** (agents, llm-*) → `silentLoad:true`, jamais archivé auto. `creatable`/`archivable` exposés + UI (badges, compteurs « créables/archivables »).
 - [x] 3 tests (104 total) + tsc 0 + E2E réel (boucle ban complète : permission mcp→env-failure auto, mauvais mécanisme→banni manuel ; 20/39 archivables ; 0 erreur console).
 
-**3b/3c — reste**
-- [ ] Gate de graduation : principe/champion diplômé (confiance haute + jugé + lift prouvé).
+**3b — Graduation + journal + réglages (token-free) — LIVRÉ**
+- [x] Gate de graduation (`graduation.ts`) : patch (principe confiance≥0.7, non contesté, jugé → skill ciblé par token-match), create (gap créable), archive (mort archivable). Déterministe.
+- [x] Journal des propositions (`proposals-store.ts`) + fusion live↔journal (`mergeWithJournal`) + statuts pending/applied/rejected/failed. `/api/config/proposals`.
+- [x] Réglages (`settings.ts`) : kill-switch `autoGenerate` + 3 toggles `autoPatch/autoCreate/autoArchive` + cap `maxPerCycle` (défaut 3, anti-batch North Star). `/api/config/settings`.
+- [x] Sous-onglet « Auto-évolution » (toggles + liste propositions). 5 tests graduation (109 total) + tsc 0 + E2E réel (20 propositions archive, 0 create car gaps bloqués → chaîne gate prouvée, 0 erreur console). Bug clé dupliquée `archive:skills` corrigé (fallback nom skill premier niveau).
+
+**3c — Exécution write-back (génération LLM + écriture) — reste**
 - [ ] Génération patch via `/prompt-architect` (réécriture sémantique) + **gate anti-bloat** (rejet si rallonge sans gain).
-- [ ] Journal des propositions (statuts applique-auto/manuel/rejete/recale-gate/attente) + **3 toggles auto/manuel par catégorie** (patch/création/élagage), auto défaut.
+- [ ] Politique tokens (choix Chris : auto-total) implémentée **plafonnée** : auto sans clic, cap `maxPerCycle`, jamais pendant backfill (`ARCADE_LOOP_ACTIVE`), kill-switch.
 - [x] **Backup config** (`src/config/backup.ts`) : snapshot tar.gz complet horodaté + rétention 30 + `listBackups`. Baseline tirée.
 - [ ] Application auto/manuel → **`snapshotConfig()` AVANT chaque write-back + commit git** (double filet, demande Chris). Whitelist (tout sauf CLAUDE.md). Élagage = **archivage** (`skills/.archived/`), jamais rm.
 - [ ] Mesure fitness post-révision via courbe Phase 3 → revert signalé si baisse.

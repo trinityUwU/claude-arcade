@@ -22,6 +22,7 @@ beforeAll(async () => {
     join(root, "skills", "humanizer", "SKILL.md"),
     "---\nname: humanizer\ndescription: enlève les marqueurs IA\n---\ncorps du skill\n<!-- arcade:managed -->\nzone\n",
   );
+  await writeFile(join(root, "skills", "log-session-start.md"), "skill de premier niveau sans frontmatter\n");
   await mkdir(join(root, "commands"), { recursive: true });
   await writeFile(join(root, "commands", "lint.md"), "lint\n");
   await writeFile(join(root, "settings.json"), "{}\n");
@@ -42,6 +43,11 @@ test("scanConfig : classe chaque fichier par kind", async () => {
   expect(byRel.get("skills/humanizer/SKILL.md")?.kind).toBe("skill");
   expect(byRel.get("commands/lint.md")?.kind).toBe("command");
   expect(byRel.get("settings.json")?.kind).toBe("setting");
+});
+
+test("scanConfig : skill de premier niveau → nom de fichier (pas le dossier 'skills')", async () => {
+  const e = (await scanConfig()).entries.find((x) => x.relPath === "skills/log-session-start.md");
+  expect(e?.name).toBe("log-session-start");
 });
 
 test("scanConfig : parse le frontmatter name/description du skill", async () => {

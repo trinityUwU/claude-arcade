@@ -58,3 +58,35 @@ export interface CoverageReport {
   gaps: CoverageGap[];
   dead: CoverageDeadSkill[];
 }
+
+// --- Graduation + write-back (incrément 3b/3c) ---
+
+export type ProposalKind = "patch" | "create" | "archive";
+export type ProposalStatus = "pending" | "applied" | "rejected" | "failed";
+
+export interface Proposal {
+  id: string;              // stable : `${kind}:${sourceKey}` → dédup live ↔ journal
+  kind: ProposalKind;
+  title: string;
+  rationale: string;
+  sourceKey: string;       // domaine de principe / classId / nom de skill
+  targetRel?: string;      // fichier visé (patch/archive)
+  confidence?: number;
+  status: ProposalStatus;
+  createdAt: number;
+  appliedAt?: number;
+  commitHash?: string;
+  backupPath?: string;
+  note?: string;           // détail d'échec ou de rejet
+}
+
+export interface ProposalsData { generatedAt: number; proposals: Proposal[]; }
+
+/** Réglages d'évolution auto. autoGenerate = kill-switch global ; les 3 toggles = par catégorie. */
+export interface AutoSettings {
+  autoGenerate: boolean;
+  autoPatch: boolean;
+  autoCreate: boolean;
+  autoArchive: boolean;
+  maxPerCycle: number;     // cap anti-batch : générations LLM max par cycle de consolidation
+}

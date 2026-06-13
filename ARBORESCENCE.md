@@ -75,6 +75,9 @@ claude-arcade/
 │   │   ├── backup.ts         Backup complète tar.gz horodatée (~/.claude/claude-arcade/config-backups, rétention 30) · snapshotConfig/listBackups — double filet avec git
 │   │   ├── coverage.ts       buildCoverage (déterministe) : gaps (creatable/block env-failure|banned) + morts (silentLoad/archivable) — lu à la demande par /api/config/coverage
 │   │   ├── banned.ts         Liste manuelle des classes bannies de création (override Chris) · loadBanned/setBanned · /api/config/banned
+│   │   ├── graduation.ts     buildGraduation (déterministe) : propositions patch/create/archive diplômées + mergeWithJournal (live↔journal)
+│   │   ├── proposals-store.ts Journal persistant des propositions (statuts applied/rejected/failed) · loadJournal/recordProposal
+│   │   ├── settings.ts       Réglages auto-évolution : kill-switch autoGenerate + 3 toggles + cap maxPerCycle (anti-batch) · /api/config/settings
 │   │   └── types.ts          ConfigEntry/ConfigTree/ConfigCommit/ConfigFile
 │   ├── server/
 │   │   ├── api.ts            Bun.serve port 4317 : front + API + SSE + endpoints /api/{canonical,learning,config(/file|/history),consolidate…}

@@ -4,8 +4,11 @@ import {
   SlidersHorizontal, GitCommitHorizontal, ShieldCheck, Lock, FileText,
   LayoutList, Radar, TriangleAlert, Archive, Ban, RotateCcw, EyeOff,
 } from "lucide-react";
+import {
+  GitMerge, Power, Wand2, Plus, ArchiveX,
+} from "lucide-react";
 import type {
-  ConfigTree, ConfigEntry, ConfigCommit, ConfigFile, CoverageReport,
+  ConfigTree, ConfigEntry, ConfigCommit, ConfigFile, CoverageReport, Proposal, AutoSettings,
 } from "../../src/config/types.ts";
 import type { SkillUsage } from "../../src/types.ts";
 import { PanelMessage } from "./SessionsPanel.tsx";
@@ -185,8 +188,105 @@ function CoverageView(): React.JSX.Element {
   );
 }
 
+const KIND_ICON: Record<Proposal["kind"], typeof Wand2> = { patch: Wand2, create: Plus, archive: ArchiveX };
+const KIND_TONE: Record<Proposal["kind"], string> = {
+  patch: "text-sky-300", create: "text-emerald-300", archive: "text-white/45",
+};
+const STATUS_TONE: Record<Proposal["status"], string> = {
+  pending: "bg-amber-400/10 text-amber-200", applied: "bg-emerald-400/10 text-emerald-300",
+  rejected: "bg-white/[0.06] text-white/40", failed: "bg-rose-400/10 text-rose-300",
+};
+
+function Toggle({ on, onToggle, label, hint }: { on: boolean; onToggle: () => void; label: string; hint?: string }): React.JSX.Element {
+  return (
+    <button onClick={onToggle} className="flex items-center justify-between gap-3 rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-2 text-left hover:bg-white/[0.04]">
+      <div>
+        <p className="text-[12px] text-white/80">{label}</p>
+        {hint && <p className="text-[10px] text-white/35">{hint}</p>}
+      </div>
+      <span className={`relative h-4 w-7 shrink-0 rounded-full transition-colors ${on ? "bg-fuchsia-500/70" : "bg-white/15"}`}>
+        <span className={`absolute top-0.5 size-3 rounded-full bg-white transition-all ${on ? "left-3.5" : "left-0.5"}`} />
+      </span>
+    </button>
+  );
+}
+
+function EvolutionView(): React.JSX.Element {
+  const [settings, setSettings] = useState<AutoSettings | null>(null);
+  const [props, setProps] = useState<Proposal[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async (): Promise<void> => {
+    try {
+      const [s, p] = await Promise.all([fetch("/api/config/settings"), fetch("/api/config/proposals")]);
+      setSettings((await s.json()) as AutoSettings);
+      setProps((await p.json()) as Proposal[]);
+    } catch (e: unknown) { setError(String(e)); }
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+
+  const patch = useCallback(async (p: Partial<AutoSettings>): Promise<void> => {
+    try {
+      const r = await fetch("/api/config/settings", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(p),
+      });
+      setSettings((await r.json()) as AutoSettings);
+    } catch (e: unknown) { setError(String(e)); }
+  }, []);
+
+  if (error) return <PanelMessage text={`Erreur : ${error}`} />;
+  if (!settings || !props) return <PanelMessage text="Chargement…" />;
+  const pending = props.filter((p) => p.status === "pending").length;
+
+  return (
+    <div className="flex-1 overflow-y-auto px-8 py-6">
+      <section className="mb-7 max-w-xl">
+        <h2 className="mb-3 flex items-center gap-2 text-[13px] font-semibold text-white/85">
+          <Power size={15} className={settings.autoGenerate ? "text-fuchsia-300" : "text-white/30"} /> Évolution automatique
+        </h2>
+        <div className="flex flex-col gap-2">
+          <Toggle on={settings.autoGenerate} onToggle={() => void patch({ autoGenerate: !settings.autoGenerate })}
+            label="Auto-génération (kill-switch global)" hint="Coupe toute écriture auto. Détection toujours active." />
+          <div className="grid grid-cols-3 gap-2">
+            <Toggle on={settings.autoPatch} onToggle={() => void patch({ autoPatch: !settings.autoPatch })} label="Patch" />
+            <Toggle on={settings.autoCreate} onToggle={() => void patch({ autoCreate: !settings.autoCreate })} label="Création" />
+            <Toggle on={settings.autoArchive} onToggle={() => void patch({ autoArchive: !settings.autoArchive })} label="Archivage" />
+          </div>
+          <p className="px-1 text-[10px] text-white/35">Cap anti-batch : {settings.maxPerCycle} générations max / cycle (North Star).</p>
+        </div>
+      </section>
+      <section>
+        <h2 className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-white/85">
+          <GitMerge size={15} className="text-fuchsia-200" /> Propositions ({pending} en attente / {props.length})
+        </h2>
+        <p className="mb-3 text-[11px] text-white/40">Diplômées des consolidations : patch (principe confiant + jugé), création (gap créable), archivage (mort).</p>
+        {props.length === 0
+          ? <p className="text-[12px] text-white/35">Aucune proposition pour l'instant.</p>
+          : <div className="flex flex-col gap-2">
+              {props.map((p) => {
+                const Icon = KIND_ICON[p.kind];
+                return (
+                  <div key={p.id} className="flex items-start gap-3 rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
+                    <Icon size={15} className={`mt-0.5 shrink-0 ${KIND_TONE[p.kind]}`} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate text-[13px] text-white/85">{p.title}</span>
+                        <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] ${STATUS_TONE[p.status]}`}>{p.status}</span>
+                      </div>
+                      <p className="mt-0.5 text-[11px] leading-relaxed text-white/50">{p.rationale}</p>
+                      {p.targetRel && <p className="mt-1 font-mono text-[10px] text-white/30">{p.targetRel}</p>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>}
+      </section>
+    </div>
+  );
+}
+
 export function ConfigPanel(): React.JSX.Element {
-  const [mode, setMode] = useState<"files" | "coverage">("files");
+  const [mode, setMode] = useState<"files" | "coverage" | "evolution">("files");
   const [tree, setTree] = useState<ConfigTree | null>(null);
   const [skills, setSkills] = useState<SkillUsage[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -228,8 +328,9 @@ export function ConfigPanel(): React.JSX.Element {
       <div className="flex items-center gap-1 border-b border-white/[0.07] px-4 py-2.5">
         <ModeBtn active={mode === "files"} onClick={() => setMode("files")} Icon={LayoutList} label="Fichiers" />
         <ModeBtn active={mode === "coverage"} onClick={() => setMode("coverage")} Icon={Radar} label="Couverture" />
+        <ModeBtn active={mode === "evolution"} onClick={() => setMode("evolution")} Icon={GitMerge} label="Auto-évolution" />
       </div>
-      {mode === "coverage" ? <CoverageView /> : (
+      {mode === "evolution" ? <EvolutionView /> : mode === "coverage" ? <CoverageView /> : (
       <div className="flex flex-1 overflow-hidden">
       <div className="flex w-72 shrink-0 flex-col gap-1 overflow-y-auto border-r border-white/[0.07] px-3 py-5">
         <header className="mb-3 flex items-center gap-2 px-1">

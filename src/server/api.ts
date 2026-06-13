@@ -13,7 +13,11 @@ import { scanConfig } from "../config/scan.ts";
 import { fileHistory } from "../config/git.ts";
 import { buildCoverage } from "../config/coverage.ts";
 import { loadBanned, setBanned } from "../config/banned.ts";
+import { buildGraduation, mergeWithJournal } from "../config/graduation.ts";
+import { loadJournal } from "../config/proposals-store.ts";
+import { loadSettings, saveSettings } from "../config/settings.ts";
 import { configRoot } from "../config/paths.ts";
+import type { CoverageReport, ConfigEntry, AutoSettings } from "../config/types.ts";
 import { logger } from "../logger.ts";
 import type { ScanResult } from "../types.ts";
 import type { SchemaInstance } from "../consolidate/types.ts";
@@ -94,15 +98,33 @@ async function configHistoryResponse(rel: string | null): Promise<Response> {
   return Response.json(await fileHistory(rel));
 }
 
-/** Couverture skills (gaps + morts) calculée à la demande depuis les données persistées + le scan. */
-async function configCoverageResponse(): Promise<Response> {
+/** Couverture skills calculée à la demande depuis les données persistées + le scan (mémoïsé). */
+async function coverageData(): Promise<{ report: CoverageReport; entries: ConfigEntry[] }> {
   const [scan, tree, summaries, registry, champions, banned] = await Promise.all([
     getScan(), scanConfig(), loadAllSummaries(), loadCanonicalRegistry(), loadChampions(), loadBanned(),
   ]);
   const report = buildCoverage(
     summaries, registry, champions ?? { generatedAt: 0, categories: [] }, scan.topSkills, tree.entries, banned,
   );
-  return Response.json(report);
+  return { report, entries: tree.entries };
+}
+
+async function configCoverageResponse(): Promise<Response> {
+  return Response.json((await coverageData()).report);
+}
+
+/** Propositions d'évolution : détection live (graduation) fusionnée avec le journal persisté. */
+async function configProposalsResponse(): Promise<Response> {
+  const [{ report, entries }, principles, journal] = await Promise.all([
+    coverageData(), loadPrinciples(), loadJournal(),
+  ]);
+  const live = buildGraduation(principles ?? { generatedAt: 0, domains: [] }, report, entries);
+  return Response.json(mergeWithJournal(live, journal));
+}
+
+async function configSettingsResponse(req: Request): Promise<Response> {
+  const patch = (await req.json().catch(() => ({}))) as Partial<AutoSettings>;
+  return Response.json(await saveSettings(patch));
 }
 
 function broadcast(result: ScanResult): void {
@@ -206,6 +228,11 @@ const server = Bun.serve({
         if (!body.classId) return Response.json({ error: "classId requis" }, { status: 400 });
         return Response.json(await setBanned(body.classId, body.banned !== false));
       },
+    },
+    "/api/config/proposals": async () => configProposalsResponse(),
+    "/api/config/settings": {
+      GET: async () => Response.json(await loadSettings()),
+      POST: async (req) => configSettingsResponse(req),
     },
   },
   error(err) {

@@ -33,7 +33,10 @@ async function fileMeta(abs: string): Promise<FileMeta> {
 async function toEntry(root: string, abs: string, kind: ConfigKind): Promise<ConfigEntry> {
   const meta = await fileMeta(abs);
   const relPath = relative(root, abs);
-  const fallback = relPath.split("/").at(-2) ?? relPath.split("/").at(-1) ?? relPath;
+  const parts = relPath.split("/");
+  const base = parts.at(-1) ?? relPath;
+  // skills/<nom>/SKILL.md → dossier parent ; skills/<fichier>.md → nom de fichier (sans .md)
+  const fallback = base === "SKILL.md" ? (parts.at(-2) ?? base) : base.replace(/\.md$/, "");
   return {
     kind, relPath,
     name: meta.name ?? (kind === "skill" ? fallback : relPath),
