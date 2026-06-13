@@ -1,6 +1,15 @@
 # STATE — claude-arcade
 *Dernière mise à jour : 2026-06-13*
 
+## Session 2026-06-13 (suite) — COUCHE 3 : évolution darwinienne des schémas de résolution (LIVRÉE)
+Système qui apprend de ses propres sessions : extrait par session le sujet, la difficulté (+pourquoi) et la LISTE EXHAUSTIVE des problèmes, chacun avec son schéma de résolution. Regroupe par catégorie, élit un **champion** par **fitness composite auto**, conserve la lignée, mesure l'évolution dans le temps, et **injecte** le champion pertinent dans le contexte (hooks). Tout visible dans l'app. 5 Epics A→E, 20 stories, 45/45 tests, tsc 0, validé E2E Playwright. Rapport : `logs/report-2026-06-13_07-42.md`.
+- **A — data v2** : `SummaryFields` + `difficulty{level,why}` + `problems[]` (resolution_schema {steps, tools_used, turns_to_resolve, backtracks, tool_errors, outcome}). SCHEMA_VERSION 1→2. Budget digest 9000→16000. Rétro-compat v1 (defaults au narrowing + guards `?? []`/`?.` dans champions.ts/evolution.ts).
+- **B — champions** : `fitness.ts` (computeFitness = 0.35·(1/turns)+0.25·(1/(bt+1))+0.20·(1/(te+1))+0.20·(q/100) ×{resolved 1,partial .6,unresolved 0}, + fitnessBreakdown/FITNESS_WEIGHTS), `champions.ts` (buildChampions : regroupement par groupingKey(category), élection, contenders triés, history/lignée chronologique). Persisté `champions.json`. Endpoints /api/champions(/:category), /api/problems.
+- **C — évolution** : `evolution.ts` (buckets hebdo ISO : recurrence_rate, avgChampionFitness, difficulty, tendances). Métrique maîtresse = réapparition ↓ + fitness ↑. `evolution.json`, /api/evolution.
+- **D — PUSH** : `champion-context.ts` (rendu injectable borné), `classifier.ts` (texte→catégorie par recouvrement tokens), hooks `src/hooks/{session-start,user-prompt-submit}.ts` (fail-safe total, anti-récursion ARCADE_LOOP_ACTIVE=1), trace `injections.json` + /api/injections. **install-hooks.sh GATÉ — non exécuté, settings.json inchangé**.
+- **E — app** : nav verticale 2 groupes (Arcade/Apprentissage), 5 onglets Sessions/Problèmes/Schémas/Évolution/Injection. Schémas = breakdown fitness en 4 barres + multiplicateur + total. Validé E2E (0 erreur console/backend).
+- **2 portes gatées (go Chris)** : (1) `bash src/hooks/install-hooks.sh` = active injection sur TOUTES les sessions Claude Code ; (2) backfill ~557 sessions en v2 = densifie champions/évolution (comparaisons et tendances s'activent à 2+ occurrences/buckets).
+
 ## Session 2026-06-13 — rattrapage + consolidation manuelle
 - **Constat** : les consolidations auto N'AVAIENT JAMAIS tourné (timer systemd jamais installé/activé). Seuls 19 résumés existaient (batch de test du 12/06 15h24).
 - **Rattrapage lancé** (quota 80, ratio 25/j neutralisé) : 21 résumées + 59 sautées (sessions vides/triviales), 0 échec. Sessions d'hier capturées (hermes 15h42 → q80, ccremote vague 2-5 → q85). 40 résumés au total, reste ~559 en attente.

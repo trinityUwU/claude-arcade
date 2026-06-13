@@ -6,6 +6,11 @@ import { Topbar } from "./components/Topbar.tsx";
 import { BadgeCard } from "./components/BadgeCard.tsx";
 import { BrainGraph } from "./components/BrainGraph.tsx";
 import { ConsolidatePanel } from "./components/ConsolidatePanel.tsx";
+import { SessionsPanel } from "./components/SessionsPanel.tsx";
+import { ProblemsPanel } from "./components/ProblemsPanel.tsx";
+import { SchemasPanel } from "./components/SchemasPanel.tsx";
+import { EvolutionPanel } from "./components/EvolutionPanel.tsx";
+import { InjectionsPanel } from "./components/InjectionsPanel.tsx";
 
 const STATE_ORDER: Record<AchievementResult["state"], number> = { unlocked: 0, discovered: 1, secret: 2 };
 
@@ -72,22 +77,35 @@ export function App(): React.JSX.Element {
       <Sidebar data={data} active={cat} onPick={setCat} view={view} onView={setView} />
       <main className="flex flex-1 flex-col overflow-hidden">
         <Topbar data={data} onRescan={rescan} scanning={scanning} live={live} />
-        {view === "brain" ? (
-          <div className="flex-1 overflow-hidden"><BrainGraph /></div>
-        ) : view === "consolidate" ? (
-          <div className="flex-1 overflow-y-auto"><ConsolidatePanel /></div>
-        ) : (
-          <div className="flex-1 overflow-y-auto px-8 py-6">
-            <motion.div layout className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              <AnimatePresence mode="popLayout">
-                {shown.map((a, i) => <BadgeCard key={a.id} a={a} index={i} />)}
-              </AnimatePresence>
-            </motion.div>
-          </div>
-        )}
+        <ViewRouter view={view} shown={shown} />
       </main>
     </div>
   );
+}
+
+function ArcadeGrid({ shown }: { shown: AchievementResult[] }): React.JSX.Element {
+  return (
+    <div className="flex-1 overflow-y-auto px-8 py-6">
+      <motion.div layout className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <AnimatePresence mode="popLayout">
+          {shown.map((a, i) => <BadgeCard key={a.id} a={a} index={i} />)}
+        </AnimatePresence>
+      </motion.div>
+    </div>
+  );
+}
+
+function ViewRouter({ view, shown }: { view: View; shown: AchievementResult[] }): React.JSX.Element {
+  switch (view) {
+    case "brain": return <div className="flex flex-1 overflow-hidden"><BrainGraph /></div>;
+    case "consolidate": return <div className="flex flex-1 overflow-y-auto"><ConsolidatePanel /></div>;
+    case "sessions": return <SessionsPanel />;
+    case "problems": return <ProblemsPanel />;
+    case "schemas": return <SchemasPanel />;
+    case "evolution": return <EvolutionPanel />;
+    case "injections": return <InjectionsPanel />;
+    default: return <ArcadeGrid shown={shown} />;
+  }
 }
 
 function Centered({ children }: { children: React.ReactNode }): React.JSX.Element {

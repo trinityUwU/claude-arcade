@@ -1,14 +1,34 @@
-import { LayoutGrid, Gamepad2, Brain, Layers } from "lucide-react";
+import {
+  LayoutGrid, Gamepad2, Brain, Layers, ScrollText, TriangleAlert, Trophy, TrendingUp, Zap,
+} from "lucide-react";
 import type { ScanResult } from "../../src/types.ts";
 import { TIER_COLOR } from "../lib/tiers.ts";
 import { categoryIcon } from "../lib/icons.tsx";
 
-export type View = "arcade" | "brain" | "consolidate";
+export type View =
+  | "arcade" | "brain" | "consolidate"
+  | "sessions" | "problems" | "schemas" | "evolution" | "injections";
 
 interface SidebarProps {
   data: ScanResult; active: string; onPick: (c: string) => void;
   view: View; onView: (v: View) => void;
 }
+
+interface NavEntry { view: View; label: string; Icon: typeof LayoutGrid; }
+
+const ARCADE_NAV: NavEntry[] = [
+  { view: "arcade", label: "Arcade", Icon: Gamepad2 },
+  { view: "brain", label: "Cerveau", Icon: Brain },
+  { view: "consolidate", label: "Conso", Icon: Layers },
+];
+
+const LEARN_NAV: NavEntry[] = [
+  { view: "sessions", label: "Sessions", Icon: ScrollText },
+  { view: "problems", label: "Problèmes", Icon: TriangleAlert },
+  { view: "schemas", label: "Schémas", Icon: Trophy },
+  { view: "evolution", label: "Évolution", Icon: TrendingUp },
+  { view: "injections", label: "Injection", Icon: Zap },
+];
 
 function NavItem(
   { label, count, total, active, onClick, Icon }:
@@ -27,59 +47,51 @@ function NavItem(
   );
 }
 
-function ViewTab(
-  { label, Icon, active, onClick }:
-  { label: string; Icon: typeof LayoutGrid; active: boolean; onClick: () => void },
-): React.JSX.Element {
+function GroupHeader({ label }: { label: string }): React.JSX.Element {
   return (
-    <button onClick={onClick}
-      className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[12px]
-        font-semibold transition-colors ${active ? "nav-active" : "text-white/45 hover:text-white/75"}`}>
-      <Icon size={14} strokeWidth={2} />
+    <div className="mb-1 mt-2 px-2.5 text-[10px] font-semibold uppercase tracking-widest text-white/25">
       {label}
-    </button>
+    </div>
+  );
+}
+
+function CategoryBlock({ data, active, onPick }: Pick<SidebarProps, "data" | "active" | "onPick">): React.JSX.Element {
+  const s = data.score;
+  return (
+    <div className="mt-1">
+      <NavItem label="Vue d'ensemble" active={active === "Tous"}
+        onClick={() => onPick("Tous")} Icon={LayoutGrid} />
+      <div className="my-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-widest text-white/25">Catégories</div>
+      {Object.entries(s.byCategory).map(([cat, v]) => (
+        <NavItem key={cat} label={cat} count={v.unlocked} total={v.total}
+          active={active === cat} onClick={() => onPick(cat)} Icon={categoryIcon(cat)} />
+      ))}
+    </div>
   );
 }
 
 export function Sidebar({ data, active, onPick, view, onView }: SidebarProps): React.JSX.Element {
   const s = data.score;
-  const arcade = view === "arcade";
   return (
     <aside className="flex w-60 shrink-0 flex-col border-r border-white/[0.07] bg-black/20 px-3 py-5">
-      <div className="mb-5 flex items-center gap-2 px-2.5">
+      <div className="mb-4 flex items-center gap-2 px-2.5">
         <div className="flex size-8 items-center justify-center rounded-lg bg-fuchsia-400/12 text-fuchsia-200">
           <Gamepad2 size={18} strokeWidth={2} />
         </div>
         <span className="text-sm font-bold tracking-tight text-white/85">Claude Arcade</span>
       </div>
-      <div className="mb-3 flex gap-1 rounded-xl border border-white/[0.07] bg-white/[0.02] p-1">
-        <ViewTab label="Arcade" Icon={Gamepad2} active={arcade} onClick={() => onView("arcade")} />
-        <ViewTab label="Cerveau" Icon={Brain} active={view === "brain"} onClick={() => onView("brain")} />
-        <ViewTab label="Conso" Icon={Layers} active={view === "consolidate"} onClick={() => onView("consolidate")} />
-      </div>
-      <nav className="flex flex-1 flex-col gap-0.5">
-        {view === "consolidate" ? (
-          <p className="px-2.5 text-[12px] leading-relaxed text-white/40">
-            Rattrape tes sessions passées. Chaque session est résumée par Claude Code (sonnet, ton
-            abonnement) — choisis combien en lancer, suis la progression, arrête quand tu veux.
-          </p>
-        ) : arcade ? (
-          <>
-            <NavItem label="Vue d'ensemble" active={active === "Tous"}
-              onClick={() => onPick("Tous")} Icon={LayoutGrid} />
-            <div className="my-2 px-2.5 text-[10px] font-semibold uppercase
-              tracking-widest text-white/25">Catégories</div>
-            {Object.entries(s.byCategory).map(([cat, v]) => (
-              <NavItem key={cat} label={cat} count={v.unlocked} total={v.total}
-                active={active === cat} onClick={() => onPick(cat)} Icon={categoryIcon(cat)} />
-            ))}
-          </>
-        ) : (
-          <p className="px-2.5 text-[12px] leading-relaxed text-white/40">
-            Le réseau de ta pratique : sessions, projets, notions, erreurs récurrentes et process gagnants,
-            reliés. Survole un nœud pour le détail, zoome pour explorer.
-          </p>
-        )}
+      <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto">
+        <GroupHeader label="Arcade" />
+        {ARCADE_NAV.map((e) => (
+          <NavItem key={e.view} label={e.label} active={view === e.view}
+            onClick={() => onView(e.view)} Icon={e.Icon} />
+        ))}
+        {view === "arcade" && <CategoryBlock data={data} active={active} onPick={onPick} />}
+        <GroupHeader label="Apprentissage" />
+        {LEARN_NAV.map((e) => (
+          <NavItem key={e.view} label={e.label} active={view === e.view}
+            onClick={() => onView(e.view)} Icon={e.Icon} />
+        ))}
       </nav>
       <div className="mt-4 rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
         <div className="flex items-center justify-between">
