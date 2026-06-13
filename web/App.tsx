@@ -5,6 +5,7 @@ import { Sidebar, type View } from "./components/Sidebar.tsx";
 import { Topbar } from "./components/Topbar.tsx";
 import { BadgeCard } from "./components/BadgeCard.tsx";
 import { BrainGraph } from "./components/BrainGraph.tsx";
+import { ConsolidatePanel } from "./components/ConsolidatePanel.tsx";
 
 const STATE_ORDER: Record<AchievementResult["state"], number> = { unlocked: 0, discovered: 1, secret: 2 };
 
@@ -73,6 +74,8 @@ export function App(): React.JSX.Element {
         <Topbar data={data} onRescan={rescan} scanning={scanning} live={live} />
         {view === "brain" ? (
           <div className="flex-1 overflow-hidden"><BrainGraph /></div>
+        ) : view === "consolidate" ? (
+          <div className="flex-1 overflow-y-auto"><ConsolidatePanel /></div>
         ) : (
           <div className="flex-1 overflow-y-auto px-8 py-6">
             <motion.div layout className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

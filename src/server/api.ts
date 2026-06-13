@@ -3,6 +3,7 @@ import index from "../../web/index.html";
 import { runScan } from "../scan.ts";
 import { loadState } from "../engine/state.ts";
 import { loadInsights, loadGraph, loadAllSummaries, loadSummary } from "../consolidate/store.ts";
+import { consolidateStatus, startConsolidation, stopConsolidation } from "../consolidate/job.ts";
 import { readSession } from "../scanner/session-reader.ts";
 import { cleanTranscript } from "../consolidate/transcript-view.ts";
 import { watchSessions } from "./watch.ts";
@@ -78,6 +79,16 @@ const server = Bun.serve({
       return s ? Response.json(s) : new Response("not found", { status: 404 });
     },
     "/api/transcript/:id": async (req) => transcriptResponse(req.params.id),
+    "/api/consolidate/status": async () => Response.json(await consolidateStatus()),
+    "/api/consolidate": {
+      POST: async (req) => {
+        const body = (await req.json().catch(() => ({}))) as { quota?: number };
+        const started = startConsolidation(body.quota);
+        if (!started) return Response.json({ error: "déjà en cours" }, { status: 409 });
+        return Response.json(await consolidateStatus());
+      },
+    },
+    "/api/consolidate/stop": { POST: () => Response.json({ stopped: stopConsolidation() }) },
   },
   error(err) {
     logger.error({ err }, "erreur serveur");

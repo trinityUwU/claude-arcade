@@ -12,7 +12,9 @@ import {
 } from "./store.ts";
 import { buildInsights } from "./insights.ts";
 import { buildGraph } from "./graph.ts";
-import type { SessionSummary, ConsolidationIndex, ConsolidationRun } from "./types.ts";
+import type {
+  SessionSummary, ConsolidationIndex, ConsolidationRun, RunOptions, RunProgress,
+} from "./types.ts";
 import { SUMMARY_SCHEMA_VERSION } from "./summary-prompt.ts";
 import { logger } from "../logger.ts";
 
@@ -24,6 +26,13 @@ const DEFAULT_QUOTA = 25;
 function quota(): number {
   const q = Number(process.env.ARCADE_BACKFILL_QUOTA);
   return Number.isFinite(q) && q > 0 ? Math.floor(q) : DEFAULT_QUOTA;
+}
+
+/** Nombre de sessions en attente de consolidation (sans les traiter). */
+export async function countPending(): Promise<number> {
+  const idx = await loadIndex();
+  const files = await listSessionFiles();
+  return (await selectPending(files, idx)).length;
 }
 
 /** Sessions à traiter : non vues / modifiées, stables, triées récentes d'abord. */
@@ -64,28 +73,38 @@ export async function rebuildInsights(): Promise<void> {
   await saveGraph(buildGraph(summaries, insights));
 }
 
-export async function runConsolidation(): Promise<ConsolidationRun> {
+export async function runConsolidation(opts: RunOptions = {}): Promise<ConsolidationRun> {
   const started = Date.now();
   const model = defaultModel();
+  const limit = opts.quota && opts.quota > 0 ? Math.floor(opts.quota) : quota();
   const idx = await loadIndex();
   const files = await listSessionFiles();
   const pending = await selectPending(files, idx);
-  const batch = pending.slice(0, quota());
+  const batch = pending.slice(0, limit);
   logger.info({ pending: pending.length, batch: batch.length, model }, "consolidation démarrée");
 
-  let summarized = 0, failed = 0, skipped = 0;
+  let summarized = 0, failed = 0, skipped = 0, done = 0;
+  const report = (current?: string): void => {
+    opts.onProgress?.({ done, total: batch.length, summarized, skipped, failed, current } as RunProgress);
+  };
+  report();
   for (const { file, fp } of batch) {
+    if (opts.shouldStop?.()) break; // arrêt coopératif (bouton Stop)
     const res = await summarizeOne(file, fp, model);
-    if (res === null) { failed++; continue; } // pas marqué → retenté au prochain run
-    if (res === "empty") { skipped++; } else { await saveSummary(res); summarized++; }
-    markProcessed(idx, file, fp);
+    if (res === null) { failed++; } // pas marqué → retenté au prochain run
+    else {
+      if (res === "empty") skipped++; else { await saveSummary(res); summarized++; }
+      markProcessed(idx, file, fp);
+    }
+    done++;
+    report(res && res !== "empty" ? res.project : undefined);
   }
   idx.lastRun = Date.now();
   await saveIndex(idx);
   await rebuildInsights();
   const run: ConsolidationRun = {
     scanned: files.length, pending: pending.length, summarized, failed, skipped,
-    quota: quota(), ms: Date.now() - started,
+    quota: limit, ms: Date.now() - started,
   };
   logger.info(run, "consolidation terminée");
   return run;

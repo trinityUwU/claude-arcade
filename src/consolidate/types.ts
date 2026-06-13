@@ -39,6 +39,32 @@ export interface ConsolidationRun {
   ms: number;
 }
 
+/** Progression d'un run, émise après chaque session traitée. */
+export interface RunProgress {
+  done: number;
+  total: number;
+  summarized: number;
+  skipped: number;
+  failed: number;
+  current?: string;
+}
+
+export interface RunOptions {
+  quota?: number;
+  onProgress?: (p: RunProgress) => void;
+  shouldStop?: () => boolean;
+}
+
+/** État du job de consolidation exposé à l'app (déclenchement manuel). */
+export interface ConsolidateStatus {
+  running: boolean;
+  pending: number;
+  progress: RunProgress | null;
+  lastRun: ConsolidationRun | null;
+  startedAt: number | null;
+  finishedAt: number | null;
+}
+
 // ── Couche 2 : insights ──────────────────────────────────────────────
 
 /** Bilan par projet (regroupement des résumés). */

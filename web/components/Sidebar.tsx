@@ -1,9 +1,9 @@
-import { LayoutGrid, Gamepad2, Brain } from "lucide-react";
+import { LayoutGrid, Gamepad2, Brain, Layers } from "lucide-react";
 import type { ScanResult } from "../../src/types.ts";
 import { TIER_COLOR } from "../lib/tiers.ts";
 import { categoryIcon } from "../lib/icons.tsx";
 
-export type View = "arcade" | "brain";
+export type View = "arcade" | "brain" | "consolidate";
 
 interface SidebarProps {
   data: ScanResult; active: string; onPick: (c: string) => void;
@@ -54,10 +54,16 @@ export function Sidebar({ data, active, onPick, view, onView }: SidebarProps): R
       </div>
       <div className="mb-3 flex gap-1 rounded-xl border border-white/[0.07] bg-white/[0.02] p-1">
         <ViewTab label="Arcade" Icon={Gamepad2} active={arcade} onClick={() => onView("arcade")} />
-        <ViewTab label="Cerveau" Icon={Brain} active={!arcade} onClick={() => onView("brain")} />
+        <ViewTab label="Cerveau" Icon={Brain} active={view === "brain"} onClick={() => onView("brain")} />
+        <ViewTab label="Conso" Icon={Layers} active={view === "consolidate"} onClick={() => onView("consolidate")} />
       </div>
       <nav className="flex flex-1 flex-col gap-0.5">
-        {arcade ? (
+        {view === "consolidate" ? (
+          <p className="px-2.5 text-[12px] leading-relaxed text-white/40">
+            Rattrape tes sessions passées. Chaque session est résumée par Claude Code (sonnet, ton
+            abonnement) — choisis combien en lancer, suis la progression, arrête quand tu veux.
+          </p>
+        ) : arcade ? (
           <>
             <NavItem label="Vue d'ensemble" active={active === "Tous"}
               onClick={() => onPick("Tous")} Icon={LayoutGrid} />

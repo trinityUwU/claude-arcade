@@ -9,7 +9,8 @@ Système de consolidation 4 couches + digest PUSH (BRAIN.md injecté via Session
   - [x] Pipeline `claude -p` isolé (zéro MCP, no-session-persistence, plan, modèle `sonnet` cloud) + parseur robuste testé
   - [x] Store + index idempotent zéro-perte/zéro-doublon (`store.ts`, last-consolidation.json) + quota backfill (`run.ts`)
   - [x] Unités systemd `Persistent=true` + install.sh (NON activé — go de Chris requis : dépense tokens)
-  - [ ] **À activer par Chris** : `bash systemd/install.sh` puis enable timer (backfill 647 sessions, quota 25/j)
+  - [x] **Consolidation manuelle depuis l'app** (2026-06-13) — onglet « Conso » : compteur en attente, presets 25/50/100 + champ libre + « Tout (N) », progression live (barre + projet courant + compteurs), bouton Arrêter. Backend : `countPending`, `runConsolidation({quota,onProgress,shouldStop})`, job singleton `job.ts`, endpoints `/api/consolidate(/status|/stop)`. Quota 25/j neutralisé pour le manuel.
+  - [ ] systemd auto (optionnel maintenant que le manuel existe) : `bash systemd/install.sh` puis enable timer
 - [x] **Couche 2 — consolidation (liens + insights + graphe)** (livré, validé sur 19 sessions réelles)
   - [x] Normalisation texte + détection récurrence (`text-normalize.ts`) erreurs/process count≥2
   - [x] Insights : bilans projet (avgQuality), erreurs récurrentes Claude/Chris, process gagnants, notions (`insights.ts`)

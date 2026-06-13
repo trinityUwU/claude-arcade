@@ -1,5 +1,11 @@
 # STATE — claude-arcade
-*Dernière mise à jour : 2026-06-12*
+*Dernière mise à jour : 2026-06-13*
+
+## Session 2026-06-13 — rattrapage + consolidation manuelle
+- **Constat** : les consolidations auto N'AVAIENT JAMAIS tourné (timer systemd jamais installé/activé). Seuls 19 résumés existaient (batch de test du 12/06 15h24).
+- **Rattrapage lancé** (quota 80, ratio 25/j neutralisé) : 21 résumées + 59 sautées (sessions vides/triviales), 0 échec. Sessions d'hier capturées (hermes 15h42 → q80, ccremote vague 2-5 → q85). 40 résumés au total, reste ~559 en attente.
+- **Feature livrée — consolidation manuelle depuis l'app** (onglet « Conso ») : compteur en attente, presets 25/50/100 + champ libre + « Tout (N) », progression live, bouton Arrêter. Backend : `countPending`, `runConsolidation({quota,onProgress,shouldStop})`, job singleton (`src/consolidate/job.ts`), endpoints `/api/consolidate`, `/api/consolidate/status`, `/api/consolidate/stop`. Validé : typecheck 0, Playwright zéro erreur console, flux run→progress→done E2E OK.
+- systemd auto devient optionnel (le manuel couvre le besoin de rattrapage).
 
 ## Résumé de l'état actuel
 Projet neuf. Phase 1 (moteur de scan + CLI) en cours. Objectif : reproduire en local, Claude-Code-only, le dashboard arcade de hermes-achievements + une boucle d'auto-amélioration via hook SessionEnd.
