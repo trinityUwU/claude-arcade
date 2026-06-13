@@ -10,6 +10,7 @@ import {
 import type {
   ConfigTree, ConfigEntry, ConfigCommit, ConfigFile, CoverageReport, Proposal, AutoSettings,
 } from "../../src/config/types.ts";
+import type { RevisionImpact } from "../../src/config/revisions.ts";
 import type { SkillUsage } from "../../src/types.ts";
 import { PanelMessage } from "./SessionsPanel.tsx";
 
@@ -214,16 +215,29 @@ function Toggle({ on, onToggle, label, hint }: { on: boolean; onToggle: () => vo
 function EvolutionView(): React.JSX.Element {
   const [settings, setSettings] = useState<AutoSettings | null>(null);
   const [props, setProps] = useState<Proposal[] | null>(null);
+  const [revisions, setRevisions] = useState<RevisionImpact[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async (): Promise<void> => {
     try {
-      const [s, p] = await Promise.all([fetch("/api/config/settings"), fetch("/api/config/proposals")]);
+      const [s, p, r] = await Promise.all([
+        fetch("/api/config/settings"), fetch("/api/config/proposals"), fetch("/api/config/revisions"),
+      ]);
       setSettings((await s.json()) as AutoSettings);
       setProps((await p.json()) as Proposal[]);
+      setRevisions((await r.json()) as RevisionImpact[]);
     } catch (e: unknown) { setError(String(e)); }
   }, []);
   useEffect(() => { void load(); }, [load]);
+
+  const revert = useCallback(async (hash: string): Promise<void> => {
+    try {
+      await fetch("/api/config/revert", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hash }),
+      });
+      await load();
+    } catch (e: unknown) { setError(String(e)); }
+  }, [load]);
 
   const [busy, setBusy] = useState(false);
 
@@ -317,6 +331,35 @@ function EvolutionView(): React.JSX.Element {
               })}
             </div>}
       </section>
+      {revisions.length > 0 && (
+        <section className="mt-8">
+          <h2 className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-white/85">
+            <GitCommitHorizontal size={15} className="text-white/45" /> Révisions appliquées ({revisions.length})
+          </h2>
+          <p className="mb-3 text-[11px] text-white/40">Qualité moyenne des sessions avant → après l'écriture (signal global, ≥3 sessions/côté). Régression = revert proposé.</p>
+          <div className="flex flex-col gap-2">
+            {revisions.map((r) => (
+              <div key={r.id} className={`flex items-center justify-between gap-3 rounded-xl border p-3 ${r.regression ? "border-rose-400/25 bg-rose-400/[0.04]" : "border-white/[0.07] bg-white/[0.02]"}`}>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    {r.regression && <TriangleAlert size={13} className="shrink-0 text-rose-300" />}
+                    <span className="truncate text-[13px] text-white/85">{r.title}</span>
+                  </div>
+                  <p className="mt-0.5 text-[11px] text-white/45">
+                    qualité {r.before ?? "—"} → {r.after ?? "—"} ({r.sampleBefore}/{r.sampleAfter} sessions){r.commitHash ? ` · ${r.commitHash}` : ""}
+                  </p>
+                </div>
+                {r.commitHash && (
+                  <button onClick={() => void revert(r.commitHash as string)}
+                    className={`flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[11px] ${r.regression ? "bg-rose-500/20 text-rose-100 hover:bg-rose-500/30" : "text-white/40 hover:bg-white/[0.06] hover:text-white/70"}`}>
+                    <RotateCcw size={12} /> revert
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

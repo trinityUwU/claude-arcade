@@ -82,6 +82,7 @@ claude-arcade/
 │   │   ├── evolve.ts         generatePatch/generateCreate via claude -p isolé (générateur injectable) + gate anti-bloat (×1.25)
 │   │   ├── apply.ts          applyProposal : snapshot → générer/déplacer → write → commit → journal. Archive = move vers skills/.archived/
 │   │   ├── evolve-job.ts     runEvolution : pending autorisées plafonnées (maxPerCycle), jamais en batch, kill-switch · branché sur consolidateSession
+│   │   ├── revisions.ts      assessRevisions : qualité sessions avant/après application → flag régression · /api/config/{revisions,revert}
 │   │   └── types.ts          ConfigEntry/ConfigTree/ConfigCommit/ConfigFile
 │   ├── server/
 │   │   ├── api.ts            Bun.serve port 4317 : front + API + SSE + endpoints /api/{canonical,learning,config(/file|/history),consolidate…}

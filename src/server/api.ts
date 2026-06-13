@@ -18,6 +18,8 @@ import { loadJournal } from "../config/proposals-store.ts";
 import { loadSettings, saveSettings } from "../config/settings.ts";
 import { applyProposal } from "../config/apply.ts";
 import { runEvolution } from "../config/evolve-job.ts";
+import { assessRevisions } from "../config/revisions.ts";
+import { revertCommit } from "../config/git.ts";
 import { configRoot } from "../config/paths.ts";
 import type { CoverageReport, ConfigEntry, AutoSettings, Proposal } from "../config/types.ts";
 import { logger } from "../logger.ts";
@@ -247,6 +249,14 @@ const server = Bun.serve({
     "/api/config/proposals": async () => configProposalsResponse(),
     "/api/config/proposals/apply": { POST: async (req) => applyOneResponse(req) },
     "/api/config/evolve": { POST: async () => Response.json(await runEvolution((await getScan()).topSkills)) },
+    "/api/config/revisions": async () => Response.json(assessRevisions(await loadJournal(), await loadAllSummaries())),
+    "/api/config/revert": {
+      POST: async (req) => {
+        const { hash } = (await req.json().catch(() => ({}))) as { hash?: string };
+        if (!hash) return Response.json({ error: "hash requis" }, { status: 400 });
+        return Response.json({ reverted: await revertCommit(hash) });
+      },
+    },
     "/api/config/settings": {
       GET: async () => Response.json(await loadSettings()),
       POST: async (req) => configSettingsResponse(req),

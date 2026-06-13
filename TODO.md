@@ -39,7 +39,9 @@
 - [x] Orchestrateur (`evolve-job.ts` `runEvolution`) : pending autorisées (toggles) plafonnées à `maxPerCycle`, jamais en batch (`ARCADE_LOOP_ACTIVE`), kill-switch. Branché sur `consolidateSession` (temps réel, gardé).
 - [x] API `/api/config/{proposals/apply, evolve}` + boutons « appliquer » / « Lancer maintenant ». **`autoArchive` défaut OFF** (signal 0-invoc trop faible pour supprimer des skills faits main — décision signalée).
 - [x] 4 tests apply (113 total) + tsc 0 + E2E réel (UI rendu, archivage OFF visible, 0 erreur console). Apply validé en config temp (archive/patch/create/anti-bloat) — vraie config jamais touchée.
-- [ ] **Suite (non bloquant)** : mesure fitness post-révision via courbe Phase 3 → revert auto signalé si un patch dégrade les sessions suivantes.
+- [x] **Mesure post-révision** (`revisions.ts`) : qualité moyenne avant/après application (≥3 sessions/côté, marge 5 pts) → flag régression + **revert** (`/api/config/{revisions,revert}` + section UI + bouton). 4 tests (117 total). Revert manuel (touche la vraie config).
+
+### VAGUE 5 COMPLÈTE — boucle fermée jusqu'à la config source. Filets : backup + git + kill-switch + cap + gates + anti-bloat + mesure régression→revert.
 - [x] **Backup config** (`src/config/backup.ts`) : snapshot tar.gz complet horodaté + rétention 30 + `listBackups`. Baseline tirée.
 - [ ] Application auto/manuel → **`snapshotConfig()` AVANT chaque write-back + commit git** (double filet, demande Chris). Whitelist (tout sauf CLAUDE.md). Élagage = **archivage** (`skills/.archived/`), jamais rm.
 - [ ] Mesure fitness post-révision via courbe Phase 3 → revert signalé si baisse.
