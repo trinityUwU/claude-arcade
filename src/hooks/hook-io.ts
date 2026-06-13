@@ -6,6 +6,8 @@ export interface HookInput {
   session_id?: string;
   source?: string;
   prompt?: string;
+  transcript_path?: string;  // SessionEnd : chemin du transcript de la session terminée
+  reason?: string;           // SessionEnd : pourquoi la session se termine
 }
 
 export type HookEventName = "SessionStart" | "UserPromptSubmit";

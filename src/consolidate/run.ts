@@ -15,7 +15,7 @@ import { buildGraph } from "./graph.ts";
 import { buildChampions } from "./champions.ts";
 import { buildEvolution } from "./evolution.ts";
 import type {
-  SessionSummary, ConsolidationIndex, ConsolidationRun, RunOptions, RunProgress,
+  SessionSummary, ConsolidationIndex, ConsolidationRun, RunOptions, RunProgress, SessionEndOutcome,
 } from "./types.ts";
 import { SUMMARY_SCHEMA_VERSION } from "./summary-prompt.ts";
 import { logger } from "../logger.ts";
@@ -79,6 +79,26 @@ export async function rebuildInsights(): Promise<void> {
   const champions = buildChampions(summaries);
   await saveChampions(champions);
   await saveEvolution(buildEvolution(summaries, champions));
+}
+
+/** Consolide UNE session ciblée (hook SessionEnd, temps réel). Idempotent : skip si déjà à jour.
+ *  Ne prend PAS le lock : le worker détaché appelant le détient pour sérialiser les écritures. */
+export async function consolidateSession(
+  file: string,
+): Promise<{ outcome: SessionEndOutcome; summary?: SessionSummary }> {
+  const fp = await fileFingerprint(file);
+  if (!fp) return { outcome: "failed" };
+  const idx = await loadIndex();
+  if (isProcessed(idx, file, fp)) return { outcome: "skipped" };
+  const res = await summarizeOne(file, fp, defaultModel());
+  if (res === null) return { outcome: "failed" }; // pas marqué → rattrapé par systemd
+  markProcessed(idx, file, fp);
+  idx.lastRun = Date.now();
+  await saveIndex(idx);
+  if (res === "empty") return { outcome: "empty" };
+  await saveSummary(res);
+  await rebuildInsights();
+  return { outcome: "consolidated", summary: res };
 }
 
 export async function runConsolidation(opts: RunOptions = {}): Promise<ConsolidationRun> {

@@ -28,12 +28,13 @@ Système de consolidation 4 couches + digest PUSH (BRAIN.md injecté via Session
   - [x] Insights : bilans projet (avgQuality), erreurs récurrentes Claude/Chris, process gagnants, notions (`insights.ts`)
   - [x] Graphe écosystème : nœuds (session/projet/notion/erreur/process) + arêtes + sémantique santé (`graph.ts`)
   - [x] Rebuild auto dans l'orchestrateur + endpoints `/api/insights` `/api/graph` `/api/sessions`
-- [x] Couche 3 — PUSH natif via hooks SessionStart + UserPromptSubmit (réorientée : injection de schémas champions, pas un BRAIN.md figé — voir bloc Couche 3 en tête)
+- [x] Couche 3 — PUSH natif via hooks SessionStart + UserPromptSubmit (réorientée : injection de schémas champions, pas un BRAIN.md figé — voir bloc Couche 3 en tête) + **SessionEnd (consolidation temps réel de la session terminée)**
 - [x] Couche 4 — onglets Arcade (réalisée comme les 5 onglets Apprentissage : Sessions/Problèmes/Schémas/Évolution/Injection)
 - [x] Garde-fou anti-récursion (sentinelle `ARCADE_LOOP_ACTIVE=1` + no-session-persistence) · [ ] cadence 1×/j puis /15 sessions
 
 ## En cours
-- [ ] Phase 3 — hook SessionEnd + loop/review (claude -p) + onglet Learnings + merge-draft (sous-ensemble de la vision ci-dessus)
+- [x] **Phase 3 — hook SessionEnd (consolidation temps réel)** : à chaque fin de discussion (close/clear/resume/logout) la session est consolidée immédiatement, au lieu d'attendre le cron. Worker détaché (detached+unref, survit à la fermeture du terminal), lock fichier global (anti-concurrence), gardes anti-récursion (reason=prompt_input_exit + ARCADE_LOOP_ACTIVE). Trace `session-events.json` + /api/session-events + onglet « Temps réel ». **install-hooks.sh relancé → SessionEnd ACTIF.** Token-neutre vs systemd (idempotence). Validé E2E (conso réelle q78 en ~10s, 0 erreur console).
+- [ ] loop/review (claude -p) + onglet Learnings + merge-draft (autre sous-ensemble de la vision — revue active des skills, non commencé)
 
 ## ════ LISTE 1 — Graphe écosystème (type Obsidian, 2D) — LIVRÉ ════
 Réseau 2D plat façon Obsidian, reliant sessions/projets/notions/erreurs/process. Rendu validé Playwright.

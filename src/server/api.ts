@@ -2,7 +2,7 @@
 import index from "../../web/index.html";
 import { runScan } from "../scan.ts";
 import { loadState } from "../engine/state.ts";
-import { loadInsights, loadGraph, loadAllSummaries, loadSummary, loadChampions, loadEvolution, loadInjections } from "../consolidate/store.ts";
+import { loadInsights, loadGraph, loadAllSummaries, loadSummary, loadChampions, loadEvolution, loadInjections, loadSessionEvents } from "../consolidate/store.ts";
 import { consolidateStatus, startConsolidation, stopConsolidation } from "../consolidate/job.ts";
 import { readSession } from "../scanner/session-reader.ts";
 import { cleanTranscript } from "../consolidate/transcript-view.ts";
@@ -107,6 +107,7 @@ const server = Bun.serve({
         },
       ),
     "/api/injections": async () => Response.json(await loadInjections()),
+    "/api/session-events": async () => Response.json(await loadSessionEvents()),
     "/api/transcript/:id": async (req) => transcriptResponse(req.params.id),
     "/api/consolidate/status": async () => Response.json(await consolidateStatus()),
     "/api/consolidate": {

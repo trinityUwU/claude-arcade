@@ -11,6 +11,7 @@ import { ProblemsPanel } from "./components/ProblemsPanel.tsx";
 import { SchemasPanel } from "./components/SchemasPanel.tsx";
 import { EvolutionPanel } from "./components/EvolutionPanel.tsx";
 import { InjectionsPanel } from "./components/InjectionsPanel.tsx";
+import { SessionEndPanel } from "./components/SessionEndPanel.tsx";
 
 const STATE_ORDER: Record<AchievementResult["state"], number> = { unlocked: 0, discovered: 1, secret: 2 };
 
@@ -104,6 +105,7 @@ function ViewRouter({ view, shown }: { view: View; shown: AchievementResult[] })
     case "schemas": return <SchemasPanel />;
     case "evolution": return <EvolutionPanel />;
     case "injections": return <InjectionsPanel />;
+    case "realtime": return <SessionEndPanel />;
     default: return <ArcadeGrid shown={shown} />;
   }
 }

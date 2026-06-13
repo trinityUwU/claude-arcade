@@ -1,5 +1,5 @@
 import {
-  LayoutGrid, Gamepad2, Brain, Layers, ScrollText, TriangleAlert, Trophy, TrendingUp, Zap,
+  LayoutGrid, Gamepad2, Brain, Layers, ScrollText, TriangleAlert, Trophy, TrendingUp, Zap, Activity,
 } from "lucide-react";
 import type { ScanResult } from "../../src/types.ts";
 import { TIER_COLOR } from "../lib/tiers.ts";
@@ -7,7 +7,7 @@ import { categoryIcon } from "../lib/icons.tsx";
 
 export type View =
   | "arcade" | "brain" | "consolidate"
-  | "sessions" | "problems" | "schemas" | "evolution" | "injections";
+  | "sessions" | "problems" | "schemas" | "evolution" | "injections" | "realtime";
 
 interface SidebarProps {
   data: ScanResult; active: string; onPick: (c: string) => void;
@@ -28,6 +28,7 @@ const LEARN_NAV: NavEntry[] = [
   { view: "schemas", label: "Schémas", Icon: Trophy },
   { view: "evolution", label: "Évolution", Icon: TrendingUp },
   { view: "injections", label: "Injection", Icon: Zap },
+  { view: "realtime", label: "Temps réel", Icon: Activity },
 ];
 
 function NavItem(

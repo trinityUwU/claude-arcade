@@ -1,9 +1,12 @@
 // Persistance des résumés de session + index d'idempotence (zéro-perte, zéro-doublon).
-import { mkdir } from "node:fs/promises";
+import { mkdir, open, stat, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { Glob } from "bun";
 import { stateDir } from "../engine/state.ts";
-import type { SessionSummary, ConsolidationIndex, Insights, GraphData, ChampionsData, EvolutionData, InjectionRecord, InjectionLog } from "./types.ts";
+import type {
+  SessionSummary, ConsolidationIndex, Insights, GraphData, ChampionsData,
+  EvolutionData, InjectionRecord, InjectionLog, SessionEndEvent, SessionEndLog,
+} from "./types.ts";
 import { logger } from "../logger.ts";
 
 const INDEX_VERSION = 1;
@@ -122,6 +125,51 @@ export async function appendInjection(rec: InjectionRecord): Promise<void> {
   const log = await loadInjections();
   const records = [rec, ...log.records].slice(0, INJECTION_CAP);
   await writeJson(injectionsPath(), { generatedAt: Date.now(), records }, "appendInjection");
+}
+
+// Trace des consolidations temps réel déclenchées par le hook SessionEnd (visible dans l'app).
+const SESSION_EVENT_CAP = 500;
+function sessionEventsPath(): string {
+  return join(stateDir(), "session-events.json");
+}
+export async function loadSessionEvents(): Promise<SessionEndLog> {
+  const log = await readJson<SessionEndLog>(sessionEventsPath());
+  return log && Array.isArray(log.records) ? log : { generatedAt: 0, records: [] };
+}
+export async function appendSessionEvent(ev: SessionEndEvent): Promise<void> {
+  const log = await loadSessionEvents();
+  const records = [ev, ...log.records].slice(0, SESSION_EVENT_CAP);
+  await writeJson(sessionEventsPath(), { generatedAt: Date.now(), records }, "appendSessionEvent");
+}
+
+// Lock fichier global : sérialise les consolidations concurrentes (plusieurs hooks SessionEnd
+// détachés en parallèle écriraient l'index/champions en même temps). Un lock périmé (process
+// mort) au-delà du TTL est forcé. Échec d'acquisition = la session sera rattrapée par systemd.
+const LOCK_TTL_MS = 3 * 60_000;
+function lockPath(): string {
+  return join(stateDir(), "consolidation.lock");
+}
+export async function acquireConsolidationLock(): Promise<boolean> {
+  const path = lockPath();
+  try { await mkdir(stateDir(), { recursive: true }); } catch { /* créé par ailleurs */ }
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const fh = await open(path, "wx"); // O_EXCL : échoue atomiquement si le lock existe
+      await fh.writeFile(String(process.pid));
+      await fh.close();
+      return true;
+    } catch {
+      try {
+        const st = await stat(path);
+        if (Date.now() - st.mtimeMs > LOCK_TTL_MS) { await unlink(path); continue; } // périmé → reprise
+      } catch { continue; } // lock disparu entre-temps → on retente
+      return false; // lock vivant détenu par un autre process
+    }
+  }
+  return false;
+}
+export async function releaseConsolidationLock(): Promise<void> {
+  try { await unlink(lockPath()); } catch { /* déjà libéré */ }
 }
 
 // Watermark du mode auto : les sessions antérieures sont laissées au déclenchement manuel.

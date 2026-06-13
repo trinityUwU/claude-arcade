@@ -27,7 +27,8 @@ claude-arcade/
 │   │   ├── summarize.ts      Spawn `claude -p` isolé (zéro MCP, plan, sonnet cloud)
 │   │   ├── parse.ts          Extraction + validation robustes du JSON LLM v2 + rétro-compat v1 (testé)
 │   │   ├── store.ts          Persistance résumés/insights/graphe/champions/evolution/injections + index idempotent + watermark
-│   │   ├── run.ts            Orchestrateur : runConsolidation(...) + countPending + rebuild C2/C3 (insights→champions→evolution)
+│   │   ├── run.ts            Orchestrateur : runConsolidation(...) + consolidateSession(file) + countPending + rebuild C2/C3
+│   │   ├── consolidate-session.ts (C3) Worker détaché : consolide UNE session terminée (lock → conso ciblée → trace). Lancé par le hook SessionEnd
 │   │   ├── job.ts            Job singleton anti-concurrent (déclenchement manuel app) : progression live + stop
 │   │   ├── text-normalize.ts (C2) Normalisation + clé de regroupement (récurrence, catégories)
 │   │   ├── insights.ts       (C2) Bilans projet, erreurs/process récurrents, notions
@@ -45,7 +46,8 @@ claude-arcade/
 │   │   ├── hook-io.ts        Lecture stdin + émission JSON (additionalContext) + garde anti-récursion
 │   │   ├── session-start.ts  SessionStart : injecte les champions du projet courant (cwd)
 │   │   ├── user-prompt-submit.ts UserPromptSubmit : classifie le prompt → injecte le champion pertinent
-│   │   └── install-hooks.sh  Installe les 2 hooks dans ~/.claude/settings.json (idempotent, backup) — ACTIVÉ
+│   │   ├── session-end.ts    SessionEnd : détache la consolidation temps réel de la session terminée (gardes anti-récursion)
+│   │   └── install-hooks.sh  Installe les 3 hooks dans ~/.claude/settings.json (idempotent, backup) — ACTIVÉ
 │   ├── engine/
 │   │   ├── catalog.ts        ACHIEVEMENTS (IDs stables, tiers Copper→Olympian)
 │   │   ├── evaluate.ts       Évalue un achievement → état + tier + progression
@@ -69,7 +71,7 @@ claude-arcade/
 │                             · ConsolidatePanel.tsx (déclenchement manuel : presets + quota libre + progression + stop)
 │                             · SessionsPanel.tsx (difficulté + problèmes + resolution_schema) · ProblemsPanel.tsx (catégories/sévérité)
 │                             · SchemasPanel.tsx (champion + breakdown fitness en barres) · EvolutionPanel.tsx (signaux + courbe SVG)
-│                             · InjectionsPanel.tsx (trace des injections PUSH)
+│                             · InjectionsPanel.tsx (trace des injections PUSH) · SessionEndPanel.tsx (« Temps réel » : consolidations à la volée)
 ├── systemd/                  Cron zéro-perte ACTIVÉ (timer Persistent=true, mode auto/watermark)
 │   ├── claude-arcade-consolidate.service  oneshot : bun run consolidate (ARCADE_AUTO=1, quota 50)
 │   ├── claude-arcade-consolidate.timer    OnCalendar=daily + Persistent (rattrapage réveil)
@@ -80,8 +82,9 @@ claude-arcade/
     ├── insights.test.ts      (C2) Tests insights / récurrence
     ├── champions.test.ts     (C3) Tests fitness composite + élection champion + lignée
     ├── evolution.test.ts     (C3) Tests buckets, recurrence, tendances (date réelle)
-    ├── injection.test.ts     (C3) Tests rendu contexte + classifier
-    └── injections-store.test.ts (C3) Tests trace injections (cap, ordre)
+    ├── injection.test.ts     (C3) Tests rendu contexte + classifier (+ seuil de score anti-bruit)
+    ├── injections-store.test.ts (C3) Tests trace injections (cap, ordre)
+    └── session-end.test.ts   (C3) Tests lock de consolidation + trace SessionEnd (ordre, cap)
 ```
 
-État persisté (hors repo, dans `~/.claude/claude-arcade/`) : `state.json`, `sessions/*.json`, `last-consolidation.json`, `auto-watermark.json`, `insights.json`, `graph.json`, `champions.json`, `evolution.json`, `injections.json`.
+État persisté (hors repo, dans `~/.claude/claude-arcade/`) : `state.json`, `sessions/*.json`, `last-consolidation.json`, `auto-watermark.json`, `insights.json`, `graph.json`, `champions.json`, `evolution.json`, `injections.json`, `session-events.json`, `consolidation.lock` (éphémère).

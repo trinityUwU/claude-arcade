@@ -219,3 +219,21 @@ export interface InjectionLog {
   generatedAt: number;
   records: InjectionRecord[];   // les plus récents en premier, capés
 }
+
+// ── Couche 3 : trace des consolidations déclenchées en temps réel par le hook SessionEnd ──
+
+export type SessionEndOutcome = "consolidated" | "skipped" | "empty" | "failed";
+
+export interface SessionEndEvent {
+  at: number;                  // epoch ms du déclenchement
+  sessionId: string;
+  project: string;             // projet/cwd de la session terminée
+  reason: string;              // raison de fin renvoyée par Claude Code (clear/resume/logout/other…)
+  outcome: SessionEndOutcome;  // résultat de la consolidation ciblée
+  quality?: number;            // quality_score si la session a été résumée
+}
+
+export interface SessionEndLog {
+  generatedAt: number;
+  records: SessionEndEvent[];  // les plus récents en premier, capés
+}
