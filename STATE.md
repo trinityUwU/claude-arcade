@@ -3,6 +3,15 @@
 
 > **NORTH STAR** (`docs/NORTH-STAR.md`, immuable) : organe d'apprentissage continu temps réel sur Claude Code. Critère unique = courbe d'apprentissage PROUVÉE (session N+1 > N). Zéro modèle local, backfill manuel only, intégration via hooks, demande visuelle = graphiques de résolution. Plan magistral 4 phases dans TODO.md.
 
+## Session 2026-06-13 (suite) — VAGUE 5 INCRÉMENT 1 : FONDATION CONFIG OBSERVABLE + VERSIONNÉE (LIVRÉ)
+Nouvelle vague (go autonome Chris) : boucler l'apprentissage jusqu'à la config SOURCE (`~/.claude`). Évoluer les skills/prompts validés par les consolidations — RÉÉCRITURE sémantique (jamais append de tokens), CLAUDE.md exclu pour l'instant, git comme filet réversible au patch près. Plan 3 incréments dans TODO.md.
+- **`git init ~/.claude`** : whitelist STRICTE (`.gitignore` ignore tout `/*` puis ré-autorise CLAUDE.md, rules/, commands/, skills/, settings.json). Blacklist refusée (trop risqué). `.mcp.json` exclu après détection d'une **clé Stripe en clair** dedans. Baseline commit `6f5a62c`, 118 fichiers config, zéro secret/transcript.
+- **`src/config/`** : `paths.ts` (`configRoot()` = `~/.claude`, override `ARCADE_CONFIG_ROOT` ; `isPatchable` = hors CLAUDE.md et settings). `git.ts` (wrapper scopé : isRepo/fileHistory/fileDiff/commitPaths/revertCommit via Bun.spawn, error-handled+logged). `scan.ts` (scan CLAUDE.md+rules+skills+commands+settings, parse frontmatter name/description sans dep, détection `<!-- arcade:managed -->`, flag patchable). `types.ts` (ConfigEntry/Tree/Commit/File).
+- **API** : `/api/config` (tree), `/api/config/file?path=`, `/api/config/history?path=` — **garde whitelist** (refuse 403 tout chemin hors entries scannées, anti-traversal, même principe que `/api/artifact`).
+- **App** : onglet « Config » (groupe Arcade, icône SlidersHorizontal). `ConfigPanel.tsx` : arbo par kind (Instructions/Skills/Commandes/Réglages) + compteur d'usage par skill (réutilise `/api/skills`) + détail = badges managé/patchable, historique git, contenu. Design dark cohérent, Framer Motion.
+- **Validé E2E RÉEL** : restart serveur → `/api/config` (versioned:true, CLAUDE.md patchable:false, skills patchable:true) → Playwright : onglet Config → détail humanizer (8×) → historique git (commit baseline rendu) + contenu SKILL.md. 96/96 tests (+5), tsc 0, 0 erreur console/serveur.
+- **Reste vague 5** : INC.2 couverture (gaps/morts) dans rebuildInsights ; INC.3 graduation + write-back (toggles auto/manuel par catégorie, gate anti-bloat, prompt-architect, élagage=archivage).
+
 ## Session 2026-06-13 (suite) — ONGLET APPRENTISSAGE INTERACTIF (LIVRÉ)
 Même drill-down sur la courbe. `LearningEncounter` gagne `topic` (propagé par learning.ts). `LearningPanel` : courbes DÉPLIABLES (chevron) → liste des rencontres avec provenance (`SourceBadge` projet+date + sujet + fitness + tours + injecté + outcome), chaque rencontre cliquable → `SessionDrawer`. Sparkline : barres cliquables (stopPropagation) → session source. Validé E2E réel : « workflow edition fichier » déplie 2 rencontres (StockIOP / echo-trading), clic → drawer (qualité 72 + transcript). 91 tests, tsc 0, 0 page-error.
 

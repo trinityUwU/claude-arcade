@@ -1,12 +1,12 @@
 import {
-  LayoutGrid, Gamepad2, Brain, Layers, ScrollText, TriangleAlert, Trophy, TrendingUp, Zap, Activity, Compass, Sparkles, GitBranch, LineChart,
+  LayoutGrid, Gamepad2, Brain, Layers, ScrollText, TriangleAlert, Trophy, TrendingUp, Zap, Activity, Compass, Sparkles, GitBranch, LineChart, SlidersHorizontal,
 } from "lucide-react";
 import type { ScanResult } from "../../src/types.ts";
 import { TIER_COLOR } from "../lib/tiers.ts";
 import { categoryIcon } from "../lib/icons.tsx";
 
 export type View =
-  | "arcade" | "brain" | "consolidate" | "skills"
+  | "arcade" | "brain" | "consolidate" | "skills" | "config"
   | "learning" | "sessions" | "problems" | "schemas" | "resolutions" | "principles" | "evolution" | "injections" | "realtime";
 
 interface SidebarProps {
@@ -21,6 +21,7 @@ const ARCADE_NAV: NavEntry[] = [
   { view: "brain", label: "Cerveau", Icon: Brain },
   { view: "consolidate", label: "Conso", Icon: Layers },
   { view: "skills", label: "Skills", Icon: Sparkles },
+  { view: "config", label: "Config", Icon: SlidersHorizontal },
 ];
 
 const LEARN_NAV: NavEntry[] = [

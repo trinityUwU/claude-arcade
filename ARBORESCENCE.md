@@ -68,8 +68,13 @@ claude-arcade/
 │   │   ├── evaluate.ts       Évalue un achievement → état + tier + progression
 │   │   ├── score.ts          Score global, rang, agrégats par catégorie
 │   │   └── state.ts          state.json local : unlocks + recent + détection nouveaux paliers · stateDir() (~/.claude/claude-arcade)
+│   ├── config/               Vague 5 — observation + versioning + (à venir) évolution de la config ~/.claude
+│   │   ├── paths.ts          configRoot() (~/.claude, override ARCADE_CONFIG_ROOT) · isPatchable (hors CLAUDE.md/settings)
+│   │   ├── git.ts            Wrapper git scopé ~/.claude : isRepo/fileHistory/fileDiff/commitPaths/revertCommit (Bun.spawn)
+│   │   ├── scan.ts           Scan config (CLAUDE.md+rules+skills+commands+settings) · frontmatter · détection région managée · flag patchable
+│   │   └── types.ts          ConfigEntry/ConfigTree/ConfigCommit/ConfigFile
 │   ├── server/
-│   │   ├── api.ts            Bun.serve port 4317 : front + API + SSE + endpoints /api/{canonical,learning,consolidate(/status|/stop)…}
+│   │   ├── api.ts            Bun.serve port 4317 : front + API + SSE + endpoints /api/{canonical,learning,config(/file|/history),consolidate…}
 │   │   └── watch.ts          Surveille ~/.claude/projects → déclenche rescan auto sur activité
 ├── bin/
 │   └── arcade-note           Wrapper bash du CLI de notes (symlink ~/.local/bin/arcade-note → appelable partout)
@@ -94,6 +99,7 @@ claude-arcade/
 │                             · PrinciplesPanel.tsx (B : domaines de pensée, énoncé dominant, barre de confiance, contradictions)
 │                             · InjectionsPanel.tsx (trace des injections PUSH) · SessionEndPanel.tsx (« Temps réel » : consolidations à la volée)
 │                             · SkillsPanel.tsx (« Skills » : classement des skills les plus utilisés, barres proportionnelles)
+│                             · ConfigPanel.tsx (V5 « Config » : arbo ~/.claude par kind, usage par skill, détail = badges managé/patchable + historique git + contenu)
 ├── systemd/                  Cron zéro-perte ACTIVÉ (timer Persistent=true, mode auto/watermark)
 │   ├── claude-arcade-consolidate.service  oneshot : bun run consolidate (ARCADE_AUTO=1, quota 50)
 │   ├── claude-arcade-consolidate.timer    OnCalendar=daily + Persistent (rattrapage réveil)

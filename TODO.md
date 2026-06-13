@@ -3,6 +3,30 @@
 
 > Référence directrice : `docs/NORTH-STAR.md` (immuable). Ce plan ne sert QUE le North Star : courbe d'apprentissage réelle, prouvée, temps réel, zéro modèle local, backfill manuel only.
 
+## ════ VAGUE 5 — CONFIG EVOLUTION (EN COURS, go autonome Chris 2026-06-13) ════
+> Boucler l'apprentissage jusqu'à la config SOURCE : les procédés validés font évoluer les `SKILL.md`/`rules`/agents (PAS le CLAUDE.md pour l'instant). Évoluer = RÉÉCRITURE sémantique via prompt-architect (jamais append de tokens). Git sur `~/.claude` = filet réversible au patch près. Création/élagage de skills détectés depuis les consolidations. Tout pilotable depuis l'app.
+
+### INCRÉMENT 1 — Fondation config observable + versionnée — LIVRÉ
+- [x] `git init ~/.claude` whitelist stricte (CLAUDE.md, rules, commands, skills, settings.json) + baseline commit. `.mcp.json` exclu (clé Stripe).
+- [x] `src/config/scan.ts` : scan + parse frontmatter (name/description) + détection région managée + flag patchable.
+- [x] `src/config/git.ts` : wrapper git scopé `~/.claude` (isRepo, fileHistory, fileDiff, commitPaths, revertCommit).
+- [x] `/api/config` + `/api/config/file` + `/api/config/history` (garde whitelist anti-traversal) dans `api.ts`.
+- [x] Onglet « Config » (`ConfigPanel.tsx`) : arbo par kind + contenu + historique git + stats skill + badges managé/patchable.
+- [x] 5 tests config (96 total) + tsc 0 + E2E Playwright réel (détail humanizer, historique git rendu, 0 erreur console/serveur).
+
+### INCRÉMENT 2 — Couverture (gaps + morts) dans rebuildInsights
+- [ ] `src/config/coverage.ts` : classe canonique récurrente (occ≥4-5, ≥2 projets) sans skill couvrant → gap ; skill jamais invoqué / fitness basse → mort.
+- [ ] `coverage.json` branché dans `rebuildInsights` (déterministe, zéro token). Section « Couverture » dans l'onglet Config.
+- [ ] tests + E2E.
+
+### INCRÉMENT 3 — Graduation + write-back (le cœur)
+- [ ] Gate de graduation : principe/champion diplômé (confiance haute + jugé + lift prouvé).
+- [ ] Génération patch via `/prompt-architect` (réécriture sémantique) + **gate anti-bloat** (rejet si rallonge sans gain).
+- [ ] Journal des propositions (statuts applique-auto/manuel/rejete/recale-gate/attente) + **3 toggles auto/manuel par catégorie** (patch/création/élagage), auto défaut.
+- [ ] Application auto/manuel → commit git. Whitelist (tout sauf CLAUDE.md). Élagage = **archivage** (`skills/.archived/`), jamais rm.
+- [ ] Mesure fitness post-révision via courbe Phase 3 → revert signalé si baisse.
+- [ ] tests + E2E.
+
 ## ════ PLAN MAGISTRAL — 4 PHASES ════
 
 ### PHASE 1 — Matching canonique des problèmes (fondation) — LIVRÉ

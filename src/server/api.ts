@@ -9,9 +9,13 @@ import { judgeStatus, startJudging, stopJudging } from "../consolidate/judge-job
 import { readSession } from "../scanner/session-reader.ts";
 import { cleanTranscript } from "../consolidate/transcript-view.ts";
 import { watchSessions } from "./watch.ts";
+import { scanConfig } from "../config/scan.ts";
+import { fileHistory } from "../config/git.ts";
+import { configRoot } from "../config/paths.ts";
 import { logger } from "../logger.ts";
 import type { ScanResult } from "../types.ts";
 import type { SchemaInstance } from "../consolidate/types.ts";
+import type { ConfigFile } from "../config/types.ts";
 
 const PORT = Number(process.env.ARCADE_PORT ?? 4317);
 const encoder = new TextEncoder();
@@ -68,6 +72,24 @@ async function artifactResponse(raw: string | null): Promise<Response> {
   const f = Bun.file(abs);
   if (!(await f.exists())) return new Response("not found", { status: 404 });
   return new Response(f);
+}
+
+/** Contenu d'un fichier de config. Refuse tout chemin hors de la whitelist scannée (anti-traversal). */
+async function configFileResponse(rel: string | null): Promise<Response> {
+  if (!rel) return new Response("missing path", { status: 400 });
+  const tree = await scanConfig();
+  if (!tree.entries.some((e) => e.relPath === rel)) return new Response("forbidden", { status: 403 });
+  const f = Bun.file(join(configRoot(), rel));
+  if (!(await f.exists())) return new Response("not found", { status: 404 });
+  return Response.json({ relPath: rel, content: await f.text() } satisfies ConfigFile);
+}
+
+/** Historique git d'un fichier de config (même garde whitelist que le contenu). */
+async function configHistoryResponse(rel: string | null): Promise<Response> {
+  if (!rel) return new Response("missing path", { status: 400 });
+  const tree = await scanConfig();
+  if (!tree.entries.some((e) => e.relPath === rel)) return new Response("forbidden", { status: 403 });
+  return Response.json(await fileHistory(rel));
 }
 
 function broadcast(result: ScanResult): void {
@@ -160,6 +182,9 @@ const server = Bun.serve({
       },
     },
     "/api/consolidate/stop": { POST: () => Response.json({ stopped: stopConsolidation() }) },
+    "/api/config": async () => Response.json(await scanConfig()),
+    "/api/config/file": async (req) => configFileResponse(new URL(req.url).searchParams.get("path")),
+    "/api/config/history": async (req) => configHistoryResponse(new URL(req.url).searchParams.get("path")),
   },
   error(err) {
     logger.error({ err }, "erreur serveur");
