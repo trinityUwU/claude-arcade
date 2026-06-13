@@ -5,29 +5,28 @@
 
 ## ════ PLAN MAGISTRAL — 4 PHASES ════
 
-### PHASE 1 — Matching canonique des problèmes (fondation)
+### PHASE 1 — Matching canonique des problèmes (fondation) — LIVRÉ
 Reconnaître le « même problème » entre sessions/projets sans modèle local. Le `claude -p` de consolidation (déjà gratuit, 1×/session) range chaque problème dans une taxonomie canonique évolutive. Remplace le classifier token-overlap.
-- [ ] Registre de classes canoniques persistant (`canonical-classes.json`) : id, nom, définition courte, signature.
-- [ ] Prompt de consolidation enrichi : injecter l'index borné des classes existantes → le LLM assigne chaque problème à une classe existante OU en propose une nouvelle.
-- [ ] Schéma data : `canonicalClassId` sur chaque `Problem`. SCHEMA_VERSION bump + rétro-compat.
-- [ ] Champions/évolution regroupent par classe canonique (plus par token-overlap).
-- [ ] Injection (hooks) = lookup déterministe par classe canonique + projet. Zéro token runtime.
-- [ ] Tests + tsc 0 + E2E réel.
+- [x] Registre de classes canoniques persistant (`canonical-classes.json`) : id, nom, définition, occurrences.
+- [x] Prompt de consolidation v4 enrichi : index borné injecté → le LLM assigne classe existante OU nouvelle.
+- [x] Schéma data : `canonicalClassId` sur chaque `Problem` + rétro-compat (fallback groupingKey).
+- [x] Champions/évolution regroupent par classe canonique (`problemKey`). Labels = noms canoniques.
+- [x] `/api/canonical` ; classifier matche sur vocabulaire canonique. 8 tests, E2E réel OK.
 
 ### PHASE 2 — Graphiques de résolution (couche visuelle) — LIVRÉ
 Demande explicite Chris : pour chaque problème, le schéma VISUEL de sa résolution, pas que du texte. Texte gardé, visuel ajouté.
-- [ ] Schéma par résolution : chemin étape→étape→outil, backtracks en rouge, issue. Rendu DAG.
-- [ ] Vue par classe canonique : superposition des chemins de toutes les sessions → champion vs concurrents visibles + évolution dans le temps.
-- [ ] Onglet/section dédiée dans l'app. Cohérent design system existant (dark, sobre).
-- [ ] Tests + tsc 0 + E2E réel (Playwright).
+- [x] Schéma par résolution (`ResolutionFlow.tsx`) : timeline verticale étape→issue, outils, retours/erreurs.
+- [x] Vue par classe canonique (`ResolutionsPanel.tsx`) : champion + définition + concurrents côte à côte.
+- [x] Onglet « Résolutions » dédié (nav Apprentissage, GitBranch). Design cohérent dark/sobre.
+- [x] tsc 0 + E2E Playwright (assert texte, 0 erreur console). [ ] évolution temporelle du schéma → reportée Phase 3.
 
-### PHASE 3 — Boucle de feedback + courbe d'apprentissage (le cœur)
+### PHASE 3 — Boucle de feedback + courbe d'apprentissage (le cœur) — LIVRÉ
 Prouver que ça apprend. Tracer injection→session→delta, mesurer, afficher la courbe.
-- [ ] Instrumenter l'injection : quelle classe/champion injecté dans quelle session (déjà partiellement via injections.json — relier à l'issue de la session).
-- [ ] Mesure du delta : session ayant reçu une injection vs baseline sur la même classe (erreur évitée, turns/backtracks ↓, qualité ↑).
-- [ ] Métriques de courbe : récurrence des erreurs ↓, fitness champions ↑, temps de résolution ↓ par classe.
-- [ ] Écran « Courbe d'apprentissage » en première page (preuve visible).
-- [ ] Tests + tsc 0 + E2E réel.
+- [x] Attribution injection→rencontre (`learning.ts`) par cwd + fenêtre temporelle + label de classe.
+- [x] Mesure du delta : trajectoire par classe (fitness/tours dans le temps) + `injectionLift` causal (injecté − non injecté).
+- [x] Métriques de courbe : récurrence (déjà evolution), Δ fitness/tours par classe, classes improving/worsening.
+- [x] Écran « Apprentissage » en tête du groupe (KPI causaux + sparkline par classe). `learning.json`, `/api/learning`.
+- [x] 6 tests learning (89 total) + tsc 0 + E2E réel (2 classes récurrentes, 0 erreur console).
 
 ### PHASE 4 — Fitness ancrée sur les résultats
 Arrêter de deviner les poids. Un champion vaut par son impact réel mesuré en Phase 3, pas par sa facilité.

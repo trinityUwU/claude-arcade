@@ -1,5 +1,5 @@
 import {
-  LayoutGrid, Gamepad2, Brain, Layers, ScrollText, TriangleAlert, Trophy, TrendingUp, Zap, Activity, Compass, Sparkles, GitBranch,
+  LayoutGrid, Gamepad2, Brain, Layers, ScrollText, TriangleAlert, Trophy, TrendingUp, Zap, Activity, Compass, Sparkles, GitBranch, LineChart,
 } from "lucide-react";
 import type { ScanResult } from "../../src/types.ts";
 import { TIER_COLOR } from "../lib/tiers.ts";
@@ -7,7 +7,7 @@ import { categoryIcon } from "../lib/icons.tsx";
 
 export type View =
   | "arcade" | "brain" | "consolidate" | "skills"
-  | "sessions" | "problems" | "schemas" | "resolutions" | "principles" | "evolution" | "injections" | "realtime";
+  | "learning" | "sessions" | "problems" | "schemas" | "resolutions" | "principles" | "evolution" | "injections" | "realtime";
 
 interface SidebarProps {
   data: ScanResult; active: string; onPick: (c: string) => void;
@@ -24,6 +24,7 @@ const ARCADE_NAV: NavEntry[] = [
 ];
 
 const LEARN_NAV: NavEntry[] = [
+  { view: "learning", label: "Apprentissage", Icon: LineChart },
   { view: "sessions", label: "Sessions", Icon: ScrollText },
   { view: "problems", label: "Problèmes", Icon: TriangleAlert },
   { view: "schemas", label: "Schémas", Icon: Trophy },

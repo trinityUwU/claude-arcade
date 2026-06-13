@@ -316,6 +316,45 @@ export interface EvolutionData {
   fitnessTrend: TrendDirection;      // fitness monte = "improving"
 }
 
+// ── Phase 3 : boucle de feedback — la courbe d'apprentissage (session N+1 > N ?) ──
+
+/** Une rencontre d'une classe de problème dans une session, avec son issue et si une
+ *  injection pertinente l'a précédée (attribution causale par cwd + fenêtre temporelle). */
+export interface LearningEncounter {
+  sessionId: string;
+  project: string;
+  at: number;            // date réelle de session (startTs sinon summarizedAt)
+  fitness: number;
+  turns: number;
+  backtracks: number;
+  outcome: ResolutionOutcome;
+  injected: boolean;     // une injection de cette classe a touché la session avant la rencontre
+}
+
+/** Trajectoire d'apprentissage d'une classe vue 2+ fois : s'améliore-t-on à chaque rencontre ? */
+export interface ClassLearningCurve {
+  classId: string;
+  label: string;
+  encounters: LearningEncounter[];   // chronologiques croissants
+  fitnessDelta: number;              // dernière − première rencontre (×1000 arrondi)
+  turnsDelta: number;                // dernière − première (négatif = plus rapide = mieux)
+  injectedCount: number;
+  trend: TrendDirection;             // fitness monte ⇒ "improving"
+}
+
+/** Synthèse globale de l'apprentissage : la PREUVE que le système fait progresser l'exécution. */
+export interface LearningData {
+  generatedAt: number;
+  recurringClasses: number;          // classes vues 2+ fois
+  improvingClasses: number;          // classes dont la résolution s'améliore
+  worseningClasses: number;
+  avgFitnessDelta: number;           // moyenne des deltas de fitness (récurrentes)
+  avgTurnsDelta: number;             // moyenne des deltas de tours
+  injectedEncounters: number;        // rencontres ayant reçu une injection pertinente
+  injectionLift: number | null;      // fitness moyen injecté − non injecté (impact causal), null si data insuffisante
+  curves: ClassLearningCurve[];      // triées par nb de rencontres décroissant
+}
+
 // ── Couche 2 : trace des injections de champions dans le contexte des sessions ──
 
 export type InjectionEvent = "session-start" | "user-prompt-submit";

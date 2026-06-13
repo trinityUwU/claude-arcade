@@ -10,9 +10,10 @@ import { summarizeDigest, defaultModel } from "./summarize.ts";
 import {
   loadIndex, saveIndex, saveSummary, isProcessed, markProcessed,
   loadAllSummaries, saveInsights, saveGraph, saveChampions, saveEvolution, savePrinciples, loadJudgments,
-  loadCanonicalRegistry, saveCanonicalRegistry,
+  loadCanonicalRegistry, saveCanonicalRegistry, saveLearning, loadInjections,
 } from "./store.ts";
 import { canonicalIndexText, resolveCanonical } from "./canonical.ts";
+import { buildLearning } from "./learning.ts";
 import { buildInsights } from "./insights.ts";
 import { buildGraph } from "./graph.ts";
 import { buildChampions } from "./champions.ts";
@@ -94,6 +95,7 @@ export async function rebuildInsights(): Promise<void> {
   await saveChampions(champions);
   await saveEvolution(buildEvolution(summaries, champions));
   await savePrinciples(buildPrinciples(summaries, await loadJudgments()));
+  await saveLearning(buildLearning(summaries, await loadInjections()));
 }
 
 /** Consolide UNE session ciblée (hook SessionEnd, temps réel). Idempotent : skip si déjà à jour.

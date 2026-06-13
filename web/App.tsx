@@ -11,6 +11,7 @@ import { SessionsPanel } from "./components/SessionsPanel.tsx";
 import { ProblemsPanel } from "./components/ProblemsPanel.tsx";
 import { SchemasPanel } from "./components/SchemasPanel.tsx";
 import { ResolutionsPanel } from "./components/ResolutionsPanel.tsx";
+import { LearningPanel } from "./components/LearningPanel.tsx";
 import { PrinciplesPanel } from "./components/PrinciplesPanel.tsx";
 import { EvolutionPanel } from "./components/EvolutionPanel.tsx";
 import { InjectionsPanel } from "./components/InjectionsPanel.tsx";
@@ -104,6 +105,7 @@ function ViewRouter({ view, shown }: { view: View; shown: AchievementResult[] })
     case "brain": return <div className="flex flex-1 overflow-hidden"><BrainGraph /></div>;
     case "consolidate": return <div className="flex flex-1 overflow-y-auto"><ConsolidatePanel /></div>;
     case "skills": return <SkillsPanel />;
+    case "learning": return <LearningPanel />;
     case "sessions": return <SessionsPanel />;
     case "problems": return <ProblemsPanel />;
     case "schemas": return <SchemasPanel />;

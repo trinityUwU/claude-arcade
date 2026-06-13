@@ -3,6 +3,13 @@
 
 > **NORTH STAR** (`docs/NORTH-STAR.md`, immuable) : organe d'apprentissage continu temps réel sur Claude Code. Critère unique = courbe d'apprentissage PROUVÉE (session N+1 > N). Zéro modèle local, backfill manuel only, intégration via hooks, demande visuelle = graphiques de résolution. Plan magistral 4 phases dans TODO.md.
 
+## Session 2026-06-13 (suite) — PHASE 3 : BOUCLE DE FEEDBACK + COURBE D'APPRENTISSAGE (LIVRÉ)
+Le cœur du North Star : PROUVER que l'exécution progresse (session N+1 > N), pas le supposer.
+- `learning.ts` (déterministe, zéro LLM) : pour chaque classe canonique vue 2+ fois, reconstruit la trajectoire chronologique des résolutions (fitness, tours, outcome). **Attribution causale d'injection** par cwd + fenêtre temporelle (même mécanisme que le bridge de notes) : une rencontre est `injected` si une injection de cette classe a touché le projet pendant la session. `injectionLift` = fitness moyen injecté − non injecté = la mesure causale de l'impact du PUSH (null si un groupe vide). Agrégats : recurringClasses, improving/worsening, avgFitnessDelta, avgTurnsDelta.
+- `LearningData` + `ClassLearningCurve` + `LearningEncounter` (types). `learning.json` + `/api/learning`. Branché dans `rebuildInsights` (régénéré à chaque consolidation, gratuit).
+- `LearningPanel.tsx` : onglet « Apprentissage » placé EN TÊTE du groupe (la preuve d'abord). KPI cards (dont lift causal mis en avant) + trajectoire par classe (sparkline fitness, anneau bleu = rencontre injectée, Δ fit / Δ tours colorés, badge ⚡ injections).
+- Validé E2E réel (rebuild déterministe sur summaries réels) : 2 classes récurrentes détectées, deltas calculés, lift null (données d'injection encore rares — honnête, se densifie). 6 tests learning (89 total), tsc 0, 0 erreur console.
+
 ## Session 2026-06-13 (suite) — PHASE 2 : GRAPHIQUES DE RÉSOLUTION (LIVRÉ)
 Réponse à la demande visuelle de Chris : pour chaque classe de problème, le CHEMIN de résolution en graphique, pas que du texte. Le texte des étapes est conservé mais devient visuel.
 - `ResolutionFlow.tsx` : timeline verticale (rail continu coloré par outcome, nœuds d'étapes numérotés, nœud terminal = issue résolu/partiel/non-résolu, outils en pied, métriques tours/retours/erreurs avec teinte d'alerte). Framer Motion (apparition séquentielle stagger).

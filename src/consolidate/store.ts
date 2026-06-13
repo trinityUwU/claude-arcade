@@ -6,7 +6,7 @@ import { stateDir } from "../engine/state.ts";
 import type {
   SessionSummary, ConsolidationIndex, Insights, GraphData, ChampionsData,
   EvolutionData, InjectionRecord, InjectionLog, SessionEndEvent, SessionEndLog,
-  PrinciplesData, JudgmentsData, CanonicalRegistry,
+  PrinciplesData, JudgmentsData, CanonicalRegistry, LearningData,
 } from "./types.ts";
 import { emptyRegistry } from "./canonical.ts";
 import { logger } from "../logger.ts";
@@ -136,6 +136,12 @@ export async function loadCanonicalRegistry(): Promise<CanonicalRegistry> {
   const r = await readJson<CanonicalRegistry>(canonicalPath());
   return r && Array.isArray(r.classes) ? r : emptyRegistry();
 }
+
+function learningPath(): string {
+  return join(stateDir(), "learning.json");
+}
+export const saveLearning = (l: LearningData): Promise<void> => writeJson(learningPath(), l, "saveLearning");
+export const loadLearning = (): Promise<LearningData | null> => readJson<LearningData>(learningPath());
 
 // Trace des injections de champions dans le contexte des sessions (visible dans l'app).
 const INJECTION_CAP = 500;
