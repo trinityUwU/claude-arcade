@@ -20,30 +20,40 @@ claude-arcade/
 │   │   ├── fingerprint.ts    Empreinte fichier (mtime+size) partagée scan/consolidation
 │   │   ├── cache.ts          Cache incrémental : ne re-parse que les transcripts modifiés
 │   │   └── aggregate.ts      Combine les sessions en agrégat plat (lifetime + best_session)
-│   ├── consolidate/          Couche 1 — résumés de session (Consolidation & Brain)
-│   │   ├── types.ts          SummaryFields, SessionSummary, ConsolidationIndex/Run
-│   │   ├── transcript-digest.ts  Réduit un transcript volumineux → digest texte borné
-│   │   ├── summary-prompt.ts Prompt TIDD-EC du `claude -p` de résumé (JSON stable)
+│   ├── consolidate/          Couches 1-3 — résumés, insights, évolution darwinienne
+│   │   ├── types.ts          SummaryFields(+difficulty,problems), SessionSummary(+startTs), Champions/Evolution/Injection
+│   │   ├── transcript-digest.ts  Réduit un transcript → digest texte borné (16k) + capture startTs réel
+│   │   ├── summary-prompt.ts Prompt TIDD-EC v2 : extrait difficulté + problèmes + resolution_schema (JSON stable)
 │   │   ├── summarize.ts      Spawn `claude -p` isolé (zéro MCP, plan, sonnet cloud)
-│   │   ├── parse.ts          Extraction + validation robustes du JSON LLM (testé)
-│   │   ├── store.ts          Persistance résumés/insights/graphe + index idempotent + watermark auto
-│   │   ├── run.ts            Orchestrateur : runConsolidation({quota,since,onProgress,shouldStop}) + countPending + rebuild C2
+│   │   ├── parse.ts          Extraction + validation robustes du JSON LLM v2 + rétro-compat v1 (testé)
+│   │   ├── store.ts          Persistance résumés/insights/graphe/champions/evolution/injections + index idempotent + watermark
+│   │   ├── run.ts            Orchestrateur : runConsolidation(...) + countPending + rebuild C2/C3 (insights→champions→evolution)
 │   │   ├── job.ts            Job singleton anti-concurrent (déclenchement manuel app) : progression live + stop
-│   │   ├── text-normalize.ts (C2) Normalisation + clé de regroupement (récurrence)
+│   │   ├── text-normalize.ts (C2) Normalisation + clé de regroupement (récurrence, catégories)
 │   │   ├── insights.ts       (C2) Bilans projet, erreurs/process récurrents, notions
 │   │   ├── graph.ts          (C2) Graphe écosystème Obsidian : nœuds + arêtes + santé
+│   │   ├── fitness.ts        (C3) Fitness composite auto d'un schéma + breakdown pondéré (UI)
+│   │   ├── champions.ts      (C3) Regroupement par catégorie, élection champion par fitness, lignée
+│   │   ├── evolution.ts      (C3) Buckets hebdo sur date réelle : recurrence_rate ↓ + fitness ↑ + tendances
+│   │   ├── champion-context.ts (C3/PUSH) Rendu markdown borné d'un champion → contexte injectable
+│   │   ├── classifier.ts     (C3/PUSH) Texte libre → catégories pertinentes (recouvrement de tokens)
+│   │   ├── redate-summaries.ts (C3) Migration zéro-token : redate les résumés via leur transcript + rebuild
 │   │   ├── transcript-view.ts Transcript nettoyé pour le panneau de détail (anti-bruit harness)
 │   │   ├── cli.ts            `bun run consolidate` — manuel (tout backlog) ou auto (ARCADE_AUTO=1 → watermark, zéro rattrapage)
 │   │   └── empty-mcp.json    Config MCP vide (isolation : aucun serveur chargé)
+│   ├── hooks/                (C3/PUSH) Hooks Claude Code — injection dynamique des champions
+│   │   ├── hook-io.ts        Lecture stdin + émission JSON (additionalContext) + garde anti-récursion
+│   │   ├── session-start.ts  SessionStart : injecte les champions du projet courant (cwd)
+│   │   ├── user-prompt-submit.ts UserPromptSubmit : classifie le prompt → injecte le champion pertinent
+│   │   └── install-hooks.sh  Installe les 2 hooks dans ~/.claude/settings.json (idempotent, backup) — ACTIVÉ
 │   ├── engine/
 │   │   ├── catalog.ts        ACHIEVEMENTS (IDs stables, tiers Copper→Olympian)
 │   │   ├── evaluate.ts       Évalue un achievement → état + tier + progression
 │   │   ├── score.ts          Score global, rang, agrégats par catégorie
-│   │   └── state.ts          state.json local : unlocks + recent + détection nouveaux paliers
+│   │   └── state.ts          state.json local : unlocks + recent + détection nouveaux paliers · stateDir() (~/.claude/claude-arcade)
 │   ├── server/
 │   │   ├── api.ts            Bun.serve port 4317 : front + API + SSE + endpoints /api/consolidate(/status|/stop)
 │   │   └── watch.ts          Surveille ~/.claude/projects → déclenche rescan auto sur activité
-│   └── loop/                 (Phase 3) review.ts + merge-draft.ts
 ├── bunfig.toml               Plugin bun-plugin-tailwind pour le bundling CSS
 ├── web/                      Front React/Tailwind v4/Framer Motion (dark, bundlé par Bun)
 │   ├── index.html            Entrypoint (import main.tsx + styles.css)
@@ -53,15 +63,25 @@ claude-arcade/
 │   ├── lib/
 │   │   ├── tiers.ts          Couleurs de tier + halos
 │   │   └── icons.tsx         Mapping noms/catégories → icônes Lucide (zéro emoji)
-│   └── components/           Sidebar.tsx (onglets Arcade/Cerveau/Conso) · Topbar.tsx · BadgeCard.tsx
+│   ├── lib/format.tsx        Helpers partagés panneaux : badges (outcome/severity/difficulty), couleurs sémantiques, dates
+│   └── components/           Sidebar.tsx (nav 2 groupes : Arcade/Apprentissage) · Topbar.tsx · BadgeCard.tsx
 │                             · BrainGraph.tsx (graphe Obsidian 2D, clic→détail) · NodeDetail.tsx (résumé + transcript)
 │                             · ConsolidatePanel.tsx (déclenchement manuel : presets + quota libre + progression + stop)
+│                             · SessionsPanel.tsx (difficulté + problèmes + resolution_schema) · ProblemsPanel.tsx (catégories/sévérité)
+│                             · SchemasPanel.tsx (champion + breakdown fitness en barres) · EvolutionPanel.tsx (signaux + courbe SVG)
+│                             · InjectionsPanel.tsx (trace des injections PUSH)
 ├── systemd/                  Cron zéro-perte ACTIVÉ (timer Persistent=true, mode auto/watermark)
 │   ├── claude-arcade-consolidate.service  oneshot : bun run consolidate (ARCADE_AUTO=1, quota 50)
 │   ├── claude-arcade-consolidate.timer    OnCalendar=daily + Persistent (rattrapage réveil)
 │   └── install.sh            Copie les unités (l'activation reste un go explicite)
-├── hooks/                    (Phase 3) session-end.sh
 └── tests/
     ├── metrics.test.ts       Tests unitaires scanner + engine (fixtures inline)
-    └── parse.test.ts         Tests robustesse parseur JSON LLM
+    ├── parse.test.ts         Tests robustesse parseur JSON LLM v2
+    ├── insights.test.ts      (C2) Tests insights / récurrence
+    ├── champions.test.ts     (C3) Tests fitness composite + élection champion + lignée
+    ├── evolution.test.ts     (C3) Tests buckets, recurrence, tendances (date réelle)
+    ├── injection.test.ts     (C3) Tests rendu contexte + classifier
+    └── injections-store.test.ts (C3) Tests trace injections (cap, ordre)
 ```
+
+État persisté (hors repo, dans `~/.claude/claude-arcade/`) : `state.json`, `sessions/*.json`, `last-consolidation.json`, `auto-watermark.json`, `insights.json`, `graph.json`, `champions.json`, `evolution.json`, `injections.json`.

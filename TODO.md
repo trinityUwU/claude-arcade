@@ -1,5 +1,15 @@
 # TODO — claude-arcade
-*Dernière mise à jour : 2026-06-12*
+*Dernière mise à jour : 2026-06-13*
+
+## ════ COUCHE 3 — Évolution darwinienne des schémas de résolution — LIVRÉE ════
+Le système apprend de ses propres sessions. Grain = LE PROBLÈME. Cf. STATE.md + `logs/report-2026-06-13_07-42.md`.
+- [x] **A — data v2** : `SummaryFields` + `difficulty{level,why}` + `problems[]` (resolution_schema). SCHEMA_VERSION 1→2. Budget digest 9000→16000. Rétro-compat v1.
+- [x] **B — champions** : `fitness.ts` (composite auto + breakdown), `champions.ts` (élection par catégorie + lignée). `champions.json`, /api/champions(/:category), /api/problems.
+- [x] **C — évolution** : `evolution.ts` (buckets hebdo, recurrence_rate ↓ + fitness ↑). `evolution.json`, /api/evolution. Bucketing sur date RÉELLE de session (startTs).
+- [x] **D — PUSH** : `champion-context.ts` + `classifier.ts` + hooks `src/hooks/{session-start,user-prompt-submit}.ts` (fail-safe, anti-récursion). Trace `injections.json`, /api/injections. **install-hooks.sh ACTIVÉ (settings.json).**
+- [x] **E — app** : nav 2 groupes + 5 onglets Sessions/Problèmes/Schémas/Évolution/Injection. Validé E2E Playwright.
+- [x] Fix axe temporel : startTs réel + `redate-summaries.ts` (52 redatés → 4 buckets réels).
+- [ ] **Densification** : ~12 sessions en v2, 537 backlog en v1. Re-consolider pour activer comparaisons (2+ occ/catégorie) et tendances. Backfill 25 fait le 13/06.
 
 ## Vision validée — voir docs/VISION.md (Consolidation & Brain)
 Système de consolidation 4 couches + digest PUSH (BRAIN.md injecté via SessionStart) + cron zéro-perte (systemd Persistent). But : courbe d'apprentissage continue.
@@ -16,8 +26,8 @@ Système de consolidation 4 couches + digest PUSH (BRAIN.md injecté via Session
   - [x] Insights : bilans projet (avgQuality), erreurs récurrentes Claude/Chris, process gagnants, notions (`insights.ts`)
   - [x] Graphe écosystème : nœuds (session/projet/notion/erreur/process) + arêtes + sémantique santé (`graph.ts`)
   - [x] Rebuild auto dans l'orchestrateur + endpoints `/api/insights` `/api/graph` `/api/sessions`
-- [ ] Couche 3 — digest BRAIN.md + hook SessionStart (PUSH natif)
-- [ ] Couche 4 — onglets Arcade : Sessions / Insights / Liens / Brain
+- [x] Couche 3 — PUSH natif via hooks SessionStart + UserPromptSubmit (réorientée : injection de schémas champions, pas un BRAIN.md figé — voir bloc Couche 3 en tête)
+- [x] Couche 4 — onglets Arcade (réalisée comme les 5 onglets Apprentissage : Sessions/Problèmes/Schémas/Évolution/Injection)
 - [x] Garde-fou anti-récursion (sentinelle `ARCADE_LOOP_ACTIVE=1` + no-session-persistence) · [ ] cadence 1×/j puis /15 sessions
 
 ## En cours
