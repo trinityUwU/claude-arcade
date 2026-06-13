@@ -104,6 +104,7 @@ const server = Bun.serve({
   routes: {
     "/": index,
     "/api/achievements": async () => Response.json(await getScan()),
+    "/api/skills": async () => Response.json((await getScan()).topSkills),
     "/api/recent": async () => Response.json((await loadState()).recent),
     "/api/rescan": { POST: async () => Response.json(await getScan(true)) },
     "/api/stream": () => streamResponse(),

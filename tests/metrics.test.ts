@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { analyzeSession } from "../src/scanner/metrics.ts";
-import { aggregate } from "../src/scanner/aggregate.ts";
+import { aggregate, rankSkills } from "../src/scanner/aggregate.ts";
 import { evaluate } from "../src/engine/evaluate.ts";
 import { ACHIEVEMENTS } from "../src/engine/catalog.ts";
 import type { TranscriptLine } from "../src/types.ts";
@@ -60,5 +60,27 @@ describe("aggregate + evaluate", () => {
   test("achievement secret sans signal reste caché", () => {
     const secret = ACHIEVEMENTS.find((a) => a.id === "port_3000_taken")!;
     expect(evaluate(secret, agg).state).toBe("secret");
+  });
+});
+
+describe("rankSkills", () => {
+  const s1 = analyzeSession([
+    assistant("2026-06-07T12:00:00Z", "claude-opus-4-8", [
+      toolUse("Skill", { skill: "humanizer" }), toolUse("Skill", { skill: "humanizer" }),
+      toolUse("Skill", { skill: "lint" }), toolUse("Bash"),
+    ]),
+  ], "/fake/a.jsonl");
+  const s2 = analyzeSession([
+    assistant("2026-06-08T12:00:00Z", "claude-opus-4-8", [toolUse("Skill", { skill: "lint" })]),
+  ], "/fake/b.jsonl");
+
+  test("capture le nom de skill par session", () => {
+    expect(s1.skills.humanizer).toBe(2);
+    expect(s1.skills.lint).toBe(1);
+  });
+  test("classe par invocations totales + compte les sessions distinctes", () => {
+    const ranked = rankSkills([s1, s2]);
+    expect(ranked.map((r) => r.name)).toEqual(["humanizer", "lint"]);
+    expect(ranked.find((r) => r.name === "lint")).toEqual({ name: "lint", count: 2, sessions: 2 });
   });
 });

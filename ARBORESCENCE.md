@@ -16,10 +16,10 @@ claude-arcade/
 │   ├── scanner/
 │   │   ├── session-reader.ts Localise + parse ~/.claude/projects/**/*.jsonl
 │   │   ├── tool-classify.ts  Classe un nom d'outil → métrique (Bash, Task, Skill, MCP…)
-│   │   ├── metrics.ts        analyzeSession() : une session → compteurs + métadonnées
+│   │   ├── metrics.ts        analyzeSession() : une session → compteurs + métadonnées + skills (nom→count)
 │   │   ├── fingerprint.ts    Empreinte fichier (mtime+size) partagée scan/consolidation
-│   │   ├── cache.ts          Cache incrémental : ne re-parse que les transcripts modifiés
-│   │   └── aggregate.ts      Combine les sessions en agrégat plat (lifetime + best_session)
+│   │   ├── cache.ts          Cache incrémental : ne re-parse que les transcripts modifiés (CACHE_VERSION)
+│   │   └── aggregate.ts      Combine les sessions en agrégat plat (lifetime + best_session) + rankSkills (classement skills)
 │   ├── notes/                Bridge — notes vivantes prises par Claude pendant la session
 │   │   ├── types.ts          NoteKind (decision|contradiction|stack|pattern|summary|artifact|note) + SessionNote
 │   │   ├── store.ts          Bucket par cwd (hash sha1) : notes.jsonl append-only + artifacts/ (copie durable)
@@ -85,12 +85,13 @@ claude-arcade/
 │                             · SchemasPanel.tsx (champion + breakdown fitness en barres) · EvolutionPanel.tsx (signaux + courbe SVG)
 │                             · PrinciplesPanel.tsx (B : domaines de pensée, énoncé dominant, barre de confiance, contradictions)
 │                             · InjectionsPanel.tsx (trace des injections PUSH) · SessionEndPanel.tsx (« Temps réel » : consolidations à la volée)
+│                             · SkillsPanel.tsx (« Skills » : classement des skills les plus utilisés, barres proportionnelles)
 ├── systemd/                  Cron zéro-perte ACTIVÉ (timer Persistent=true, mode auto/watermark)
 │   ├── claude-arcade-consolidate.service  oneshot : bun run consolidate (ARCADE_AUTO=1, quota 50)
 │   ├── claude-arcade-consolidate.timer    OnCalendar=daily + Persistent (rattrapage réveil)
 │   └── install.sh            Copie les unités (l'activation reste un go explicite)
 └── tests/
-    ├── metrics.test.ts       Tests unitaires scanner + engine (fixtures inline)
+    ├── metrics.test.ts       Tests unitaires scanner + engine (fixtures inline) + rankSkills (classement skills)
     ├── parse.test.ts         Tests robustesse parseur JSON LLM v2
     ├── insights.test.ts      (C2) Tests insights / récurrence
     ├── champions.test.ts     (C3) Tests fitness composite + élection champion + lignée

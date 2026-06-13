@@ -34,6 +34,7 @@ export interface SessionMeta {
 export interface SessionStats {
   counters: Counters;
   meta: SessionMeta;
+  skills: Counters; // nom de skill (input.skill du tool Skill) → nb d'invocations dans la session
 }
 
 /** Agrégat plat : chaque clé = un threshold_metric référencé par le catalogue. */
@@ -82,12 +83,20 @@ export interface AchievementResult {
   tiers: Tier[];
 }
 
+/** Usage cumulé d'un skill sur toutes les sessions (classement). */
+export interface SkillUsage {
+  name: string;
+  count: number;     // invocations totales
+  sessions: number;  // nombre de sessions distinctes l'ayant utilisé
+}
+
 export interface ScanResult {
   generatedAt: number;
   sessionCount: number;
   aggregate: Aggregate;
   achievements: AchievementResult[];
   score: ScoreSummary;
+  topSkills: SkillUsage[]; // skills les plus utilisés, count décroissant
 }
 
 export interface ScoreSummary {

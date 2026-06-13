@@ -1,6 +1,9 @@
 # STATE — claude-arcade
 *Dernière mise à jour : 2026-06-13*
 
+## Session 2026-06-13 (suite) — VUE « SKILLS LES PLUS UTILISÉS » (LIVRÉ)
+Onglet « Skills » (groupe Arcade), demandé par Chris. Déterministe, zéro token LLM. Le scanner capture désormais le NOM du skill (`input.skill` du tool Skill) par session (`metrics.ts` → `SessionStats.skills`), `rankSkills` (aggregate.ts) classe par invocations totales puis sessions distinctes, exposé via `ScanResult.topSkills` + `/api/skills`. `SkillsPanel.tsx` : barres proportionnelles (rang, nom mono, count, sessions). `CACHE_VERSION` 1→2 pour forcer un re-parse complet (sinon les sessions en cache n'ont pas le nom de skill). Validé E2E réel : 20 skills, end-session 21×/20 sessions, autonomous-dev 14×, humanizer 8×. 75/75 tests, tsc 0, Playwright 0 page-error.
+
 ## Session 2026-06-13 (suite) — BRIDGE DE NOTES VIVANTES (LIVRÉ)
 Pont entre la discussion en cours et la consolidation : Claude prend des notes EN DIRECT (`arcade-note`), rattachées ensuite au résumé comme **source haute fiabilité**, et affichées dans l'app avec leurs artefacts ouvrables. Réponse au besoin de Chris ("une qualité qu'on puisse palper", capter systématiquement le « note ça en mémoire »).
 - **Canal d'écriture** (`src/notes/`) : CLI `arcade-note <kind> "<texte>" [--artifact path] [--tag t]` (wrapper `bin/arcade-note` + symlink `~/.local/bin` → appelable depuis tout cwd). kinds = decision|contradiction|stack|pattern|summary|artifact|note. Bucket par cwd (`session-notes/<sha1-16>/`) : `notes.jsonl` append-only + `meta.json` (cwd) + `artifacts/` (copie durable de l'original via `--artifact`). 100% local, pas de MCP.

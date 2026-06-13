@@ -26,12 +26,19 @@ function bump(c: Counters, key: string, n = 1): void {
   c[key] = (c[key] ?? 0) + n;
 }
 
-function handleToolUse(name: string, input: Record<string, unknown>, c: Counters, tools: Set<string>, files: Set<string>, mcp: Set<string>): void {
+interface UseSinks { c: Counters; tools: Set<string>; files: Set<string>; mcp: Set<string>; skills: Counters }
+
+function handleToolUse(name: string, input: Record<string, unknown>, s: UseSinks): void {
+  const { c, tools, files, mcp, skills } = s;
   bump(c, "total_tool_calls");
   tools.add(name);
   if (T.isBash(name)) bump(c, "total_bash_calls");
   if (T.isTask(name)) bump(c, "total_task_calls");
-  if (T.isSkill(name)) bump(c, "skill_invocations");
+  if (T.isSkill(name)) {
+    bump(c, "skill_invocations");
+    const sk = typeof input?.skill === "string" ? input.skill.trim() : "";
+    if (sk) bump(skills, sk);
+  }
   if (T.isWebSearch(name)) bump(c, "web_searches");
   if (T.isMemoryWrite(name)) bump(c, "memory_writes");
   if (T.isCodeIndex(name)) bump(c, "codeindex_queries");
@@ -74,7 +81,7 @@ function deriveMeta(
 }
 
 export function analyzeSession(lines: TranscriptLine[], file: string): SessionStats {
-  const c: Counters = {};
+  const c: Counters = {}, skills: Counters = {};
   const tools = new Set<string>(), files = new Set<string>(), mcp = new Set<string>(), models = new Set<string>();
   let firstTs = 0, sessionId = "", msgCount = 0;
   for (const line of lines) {
@@ -84,12 +91,12 @@ export function analyzeSession(lines: TranscriptLine[], file: string): SessionSt
     if (line.type === "assistant" || line.type === "user") msgCount++;
     if (line.type === "assistant" && line.message?.model) models.add(line.message.model);
     for (const b of blocksOf(line)) {
-      if (b.type === "tool_use" && b.name) handleToolUse(b.name, b.input ?? {}, c, tools, files, mcp);
+      if (b.type === "tool_use" && b.name) handleToolUse(b.name, b.input ?? {}, { c, tools, files, mcp, skills });
       else if (b.type === "tool_result") handleToolResult(b, c);
     }
   }
   c.max_files_touched_in_session = files.size;
   c.max_distinct_tools_in_session = tools.size;
   c.max_messages_in_session = msgCount;
-  return { counters: c, meta: deriveMeta(file, sessionId || file, firstTs, models, mcp, tools, msgCount) };
+  return { counters: c, skills, meta: deriveMeta(file, sessionId || file, firstTs, models, mcp, tools, msgCount) };
 }

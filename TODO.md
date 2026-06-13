@@ -73,7 +73,7 @@ Réseau 2D plat façon Obsidian, reliant sessions/projets/notions/erreurs/proces
   - [x] Cache incrémental scanner (`src/scanner/cache.ts`, fingerprint mtime+size, persistance disque) → scan froid 3,24s / chaud 0,14s. Fix racine.
   - [x] Heartbeat SSE : commentaire `: keepalive\n\n` toutes les 15s (api.ts).
   - [x] UI tolérante : debounce 5s avant « Hors ligne » (App.tsx) — EventSource reconnecte seul.
-- [ ] Vue « skills les plus utilisés » (demandé par Chris)
+- [x] **Vue « skills les plus utilisés »** (LIVRÉ) — onglet « Skills » (groupe Arcade). Capture du nom de skill (`input.skill` du tool Skill) par session dans `metrics.ts`, `rankSkills` (aggregate.ts) classe par invocations + sessions distinctes, `ScanResult.topSkills`, `/api/skills`, `SkillsPanel.tsx` (barres proportionnelles). CACHE_VERSION 1→2 (re-parse). Validé E2E réel (20 skills, end-session 21×). 75/75 tests.
 - [ ] Share cards canvas client-side (export PNG 1200×630)
 
 ## Backlog

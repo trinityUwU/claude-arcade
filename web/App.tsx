@@ -6,6 +6,7 @@ import { Topbar } from "./components/Topbar.tsx";
 import { BadgeCard } from "./components/BadgeCard.tsx";
 import { BrainGraph } from "./components/BrainGraph.tsx";
 import { ConsolidatePanel } from "./components/ConsolidatePanel.tsx";
+import { SkillsPanel } from "./components/SkillsPanel.tsx";
 import { SessionsPanel } from "./components/SessionsPanel.tsx";
 import { ProblemsPanel } from "./components/ProblemsPanel.tsx";
 import { SchemasPanel } from "./components/SchemasPanel.tsx";
@@ -101,6 +102,7 @@ function ViewRouter({ view, shown }: { view: View; shown: AchievementResult[] })
   switch (view) {
     case "brain": return <div className="flex flex-1 overflow-hidden"><BrainGraph /></div>;
     case "consolidate": return <div className="flex flex-1 overflow-y-auto"><ConsolidatePanel /></div>;
+    case "skills": return <SkillsPanel />;
     case "sessions": return <SessionsPanel />;
     case "problems": return <ProblemsPanel />;
     case "schemas": return <SchemasPanel />;

@@ -1,6 +1,22 @@
 // Agrégation des sessions analysées en un agrégat plat (clé = threshold_metric).
-import type { SessionStats, Aggregate } from "../types.ts";
+import type { SessionStats, Aggregate, SkillUsage } from "../types.ts";
 import { modelFamily, isLocalModel } from "./tool-classify.ts";
+
+/** Classe les skills par invocations totales (décroissant), avec le nb de sessions distinctes. */
+export function rankSkills(sessions: SessionStats[]): SkillUsage[] {
+  const counts = new Map<string, { count: number; sessions: number }>();
+  for (const s of sessions) {
+    for (const [name, n] of Object.entries(s.skills ?? {})) {
+      const e = counts.get(name) ?? { count: 0, sessions: 0 };
+      e.count += n;
+      e.sessions += 1;
+      counts.set(name, e);
+    }
+  }
+  return [...counts.entries()]
+    .map(([name, e]) => ({ name, count: e.count, sessions: e.sessions }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+}
 
 /** Compteurs cumulés sur toute la vie (sommés). */
 const LIFETIME_KEYS = [

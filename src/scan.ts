@@ -2,7 +2,7 @@
 import type { ScanResult } from "./types.ts";
 import { listSessionFiles } from "./scanner/session-reader.ts";
 import { scanIncremental } from "./scanner/cache.ts";
-import { aggregate } from "./scanner/aggregate.ts";
+import { aggregate, rankSkills } from "./scanner/aggregate.ts";
 import { ACHIEVEMENTS } from "./engine/catalog.ts";
 import { evaluate } from "./engine/evaluate.ts";
 import { computeScore } from "./engine/score.ts";
@@ -23,5 +23,8 @@ export async function runScan(): Promise<ScanResult> {
     { ms: Date.now() - started, sessions: sessions.length, parsed, reused, fresh: fresh.length },
     "scan terminé",
   );
-  return { generatedAt: Date.now(), sessionCount: sessions.length, aggregate: agg, achievements, score };
+  return {
+    generatedAt: Date.now(), sessionCount: sessions.length, aggregate: agg,
+    achievements, score, topSkills: rankSkills(sessions),
+  };
 }

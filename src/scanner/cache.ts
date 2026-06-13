@@ -11,7 +11,7 @@ import { logger } from "../logger.ts";
 interface CacheEntry { fp: string; stats: SessionStats }
 export interface IncResult { sessions: SessionStats[]; parsed: number; reused: number }
 
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 2; // v2 : capture du nom de skill par session (topSkills)
 const PARSE_CONCURRENCY = 16;
 
 const mem = new Map<string, CacheEntry>();
