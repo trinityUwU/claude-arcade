@@ -158,26 +158,42 @@ async function configSettingsResponse(req: Request): Promise<Response> {
  *  Local-only (dépense de tokens). `run` reçoit le chemin + un onText et rend le résultat ou null. */
 function claudeSSE<T>(
   req: Request, server: Server<unknown>,
-  run: (path: string, onText: (t: string) => void) => Promise<T | null>,
+  run: (path: string, onText: (t: string) => void, signal: AbortSignal) => Promise<T | null>,
 ): Response {
   if (!ALLOW_REMOTE_WRITES && !isLocalRequest(server, req)) return new Response("local only", { status: 403 });
   const path = new URL(req.url).searchParams.get("path");
   if (!path) return new Response("missing path", { status: 400 });
+  const abort = new AbortController();          // client parti → on coupe le process claude
+  let closed = false;
+  let beat: ReturnType<typeof setInterval> | null = null;
   const stream = new ReadableStream<Uint8Array>({
     async start(c) {
-      const send = (event: string, data: unknown): void => {
-        c.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+      const send = (event: string, data: unknown): boolean => {
+        if (closed) return false;
+        try { c.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)); return true; }
+        catch { closed = true; return false; }   // controller fermé (client déconnecté)
       };
+      // Heartbeat : commentaire SSE pendant les longs silences (cold-start opus) pour éviter
+      // que la connexion ne lâche avant le premier token.
+      beat = setInterval(() => { if (!closed) { try { c.enqueue(encoder.encode(": keepalive\n\n")); } catch { closed = true; } } }, 10_000);
       try {
-        const result = await run(path, (text) => send("delta", { text }));
+        const result = await run(path, (text) => send("delta", { text }), abort.signal);
         if (result) send("done", result);
         else send("failed", { error: "analyse introuvable ou vide" });
       } catch (err) {
-        send("failed", { error: String(err) });
-      } finally { c.close(); }
+        if (!abort.signal.aborted) send("failed", { error: String(err) });
+      } finally {
+        if (beat) clearInterval(beat);
+        if (!closed) { try { c.close(); } catch { /* déjà fermé */ } }
+      }
+    },
+    cancel() {                                   // le navigateur a fermé l'EventSource
+      closed = true;
+      if (beat) clearInterval(beat);
+      abort.abort();
     },
   });
-  return new Response(stream, { headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache" } });
+  return new Response(stream, { headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive" } });
 }
 
 /** Applique une correction au fichier (snapshot+commit+reset analyse). Local-only (écrit la config). */
@@ -328,8 +344,8 @@ const server = Bun.serve({
       POST: async (req, server) => denyRemoteWrite(server, req) ?? configSettingsResponse(req),
     },
     "/api/audit": async () => Response.json(await auditConfig()),
-    "/api/audit/deep/stream": (req, server) => claudeSSE(req, server, (p, onText) => deepAuditFile(p, onText)),
-    "/api/audit/correct/stream": (req, server) => claudeSSE(req, server, (p, onText) => correctFile(p, onText)),
+    "/api/audit/deep/stream": (req, server) => claudeSSE(req, server, (p, onText, signal) => deepAuditFile(p, onText, signal)),
+    "/api/audit/correct/stream": (req, server) => claudeSSE(req, server, (p, onText, signal) => correctFile(p, onText, signal)),
     "/api/audit/upgrade": { POST: async (req, server) => denyRemoteWrite(server, req) ?? upgradeResponse(req) },
     "/api/audit/upgrades": async (req) => Response.json(await loadUpgrades(new URL(req.url).searchParams.get("path") ?? "")),
   },

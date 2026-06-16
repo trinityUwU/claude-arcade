@@ -8,7 +8,9 @@ const SYSTEM = "Tu es un auditeur de config Claude Code. Tu réponds en françai
 const EMPTY_MCP = join(import.meta.dir, "..", "consolidate", "empty-mcp.json");
 
 export interface StreamResult { text: string; costUsd: number; }
-export type StreamRunner = (prompt: string, onText: (chunk: string) => void, model?: string) => Promise<StreamResult>;
+export type StreamRunner = (
+  prompt: string, onText: (chunk: string) => void, model?: string, signal?: AbortSignal,
+) => Promise<StreamResult>;
 
 interface Delta { type: string; text?: string }
 interface StreamLine {
@@ -46,12 +48,14 @@ function handleLine(line: string, onText: (c: string) => void): number | null {
 
 /** Lance claude -p en streaming. `onText` reçoit le texte live ; retourne l'accumulé + coût. */
 export async function streamClaude(
-  prompt: string, onText: (chunk: string) => void, model = "sonnet",
+  prompt: string, onText: (chunk: string) => void, model = "sonnet", signal?: AbortSignal,
 ): Promise<StreamResult> {
   const proc = Bun.spawn(spawnArgs(model), {
     stdin: "pipe", stdout: "pipe", stderr: "pipe",
     env: { ...process.env, ARCADE_LOOP_ACTIVE: "1" },
   });
+  const onAbort = (): void => { try { proc.kill(); } catch { /* déjà mort */ } };  // client parti → on coupe claude
+  if (signal) signal.addEventListener("abort", onAbort, { once: true });
   proc.stdin.write(prompt);
   await proc.stdin.end();
 
@@ -72,6 +76,8 @@ export async function streamClaude(
     }
   }
   const code = await proc.exited;
+  if (signal) signal.removeEventListener("abort", onAbort);
+  if (signal?.aborted) throw new Error("aborted");          // client parti : on n'exploite pas le résultat
   if (code !== 0) {
     const err = await new Response(proc.stderr).text();
     logger.error({ code, err: err.slice(0, 300) }, "streamClaude non-zéro");

@@ -42,7 +42,8 @@ export function unwrap(text: string): string {
  * Retourne null si chemin refusé ou analyse absente. NE modifie PAS le fichier (apply séparé).
  */
 export async function correctFile(
-  relPath: string, onText: (chunk: string) => void = () => {}, runner: StreamRunner = streamClaude,
+  relPath: string, onText: (chunk: string) => void = () => {}, signal?: AbortSignal,
+  runner: StreamRunner = streamClaude,
 ): Promise<Correction | null> {
   try {
     const tree = await scanConfig();
@@ -54,7 +55,7 @@ export async function correctFile(
     const before = await Bun.file(join(configRoot(), relPath)).text();
     const rubric = await loadPromptRubric();
     const prompt = buildCorrectPrompt(relPath, entry.kind, before, analysis, rubric);
-    const { text, costUsd } = await runner(prompt, onText, "opus");  // OPUS, jamais sonnet ici
+    const { text, costUsd } = await runner(prompt, onText, "opus", signal);  // OPUS, jamais sonnet ici
     return { relPath, before, after: unwrap(text), costUsd };
   } catch (err) {
     logger.error({ err, relPath }, "correctFile failed");

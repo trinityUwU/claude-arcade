@@ -26,7 +26,8 @@ export function parseStreamed(relPath: string, text: string, costUsd: number): D
  * Retourne null si chemin refusé. `runner` injectable (tests sans tokens).
  */
 export async function deepAuditFile(
-  relPath: string, onText: (chunk: string) => void = () => {}, runner: StreamRunner = streamClaude,
+  relPath: string, onText: (chunk: string) => void = () => {}, signal?: AbortSignal,
+  runner: StreamRunner = streamClaude,
 ): Promise<DeepAudit | null> {
   try {
     const tree = await scanConfig();
@@ -34,7 +35,7 @@ export async function deepAuditFile(
     if (!entry) return null;  // garde whitelist : refuse tout hors scan
     const content = await Bun.file(join(configRoot(), relPath)).text();
     const rubric = await loadPromptRubric();
-    const { text, costUsd } = await runner(buildDeepAuditPrompt(relPath, entry.kind, content, rubric), onText);
+    const { text, costUsd } = await runner(buildDeepAuditPrompt(relPath, entry.kind, content, rubric), onText, "sonnet", signal);
     const result = parseStreamed(relPath, text, costUsd);
     await saveDeepAudit(result);
     return result;
