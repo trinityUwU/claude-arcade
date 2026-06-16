@@ -1,6 +1,7 @@
 node_modules/
 dist/
 logs/*.log
+logs/screenshots/
 *.pid
 .DS_Store
 .env

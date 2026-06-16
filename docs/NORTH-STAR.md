@@ -29,6 +29,16 @@ Pour chaque problème rencontré (toutes sessions / jours / semaines / projets c
 5. **Intégration native Claude Code.** Via les hooks (SessionEnd / SessionStart / UserPromptSubmit). On ne recrée PAS un chatbot ni un harness — sauf si ça s'intègre directement dans Claude Code.
 6. **Propose-et-valide** pour tout ce qui modifie les skills ciselés à la main.
 
+## Extension de cap (2026-06-16) — la boîte à outils de config
+
+Décision Chris : Arcade devient aussi une **boîte à outils de configuration Claude Code**, ouverte en open-source, utilisable par n'importe qui sur sa propre config dès le téléchargement (Linux/macOS/Windows). Cette extension **sert** le North Star, elle ne le remplace pas : elle est le bras armé de l'organe d'apprentissage.
+
+- **Diagnostic de config** : détecter les mauvais patterns (surchargé, sous-détaillé, non-anglais, sans trigger/description) selon les normes Anthropic. Base déterministe gratuite ; verdict approfondi `claude -p` à la demande.
+- **Atelier** (à venir) : rédaction de prompts, création/comparaison de skills — l'intelligence vient de `claude -p` (abonnement Claude Code, zéro API externe), et **réutilise `/prompt-architect`** comme source de vérité, jamais une réimplémentation.
+- **Boucle fermée** : les outils consomment les consolidations (créer un skill depuis un champion éprouvé, réécrire un skill jugé faible par la courbe).
+
+Les contraintes dures ci-dessus restent intactes : zéro API externe, tokens uniquement sur action explicite, propose-et-valide pour tout patch de skill ciselé main.
+
 ## Ce qu'on ne fait pas
 
 - Pas de dépense de tokens en arrière-plan non sollicitée.

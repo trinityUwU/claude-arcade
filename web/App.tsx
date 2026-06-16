@@ -2,12 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { AchievementResult, ScanResult } from "../src/types.ts";
 import { Sidebar, type View } from "./components/Sidebar.tsx";
+import { LiveProvider } from "./lib/live.tsx";
 import { Topbar } from "./components/Topbar.tsx";
 import { BadgeCard } from "./components/BadgeCard.tsx";
 import { BrainGraph } from "./components/BrainGraph.tsx";
 import { ConsolidatePanel } from "./components/ConsolidatePanel.tsx";
 import { SkillsPanel } from "./components/SkillsPanel.tsx";
 import { ConfigPanel } from "./components/ConfigPanel.tsx";
+import { AuditPanel } from "./components/AuditPanel.tsx";
 import { SessionsPanel } from "./components/SessionsPanel.tsx";
 import { ProblemsPanel } from "./components/ProblemsPanel.tsx";
 import { SchemasPanel } from "./components/SchemasPanel.tsx";
@@ -36,6 +38,7 @@ export function App(): React.JSX.Element {
   const [scanning, setScanning] = useState(false);
   const [live, setLive] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+  const [tick, setTick] = useState(0);  // incrémenté à chaque update SSE → refresh silencieux des panels
 
   const load = useCallback(async (url: string, method = "GET") => {
     try {
@@ -60,7 +63,10 @@ export function App(): React.JSX.Element {
       if (offlineTimer) return;
       offlineTimer = setTimeout(() => setLive(false), 5000);
     };
-    es.addEventListener("update", (e) => setData(JSON.parse((e as MessageEvent).data) as ScanResult));
+    es.addEventListener("update", (e) => {
+      setData(JSON.parse((e as MessageEvent).data) as ScanResult);
+      setTick((t) => t + 1);  // signale aux panels un refresh silencieux
+    });
     return () => { clearTimer(); es.close(); };
   }, []);
 
@@ -88,7 +94,9 @@ export function App(): React.JSX.Element {
         open={navOpen} onClose={() => setNavOpen(false)} />
       <main className="flex flex-1 flex-col overflow-hidden">
         <Topbar data={data} onRescan={rescan} scanning={scanning} live={live} onMenu={() => setNavOpen(true)} />
-        <ViewRouter view={view} shown={shown} />
+        <LiveProvider tick={tick}>
+          <ViewRouter view={view} shown={shown} />
+        </LiveProvider>
       </main>
     </div>
   );
@@ -112,6 +120,7 @@ function ViewRouter({ view, shown }: { view: View; shown: AchievementResult[] })
     case "consolidate": return <div className="flex flex-1 overflow-y-auto"><ConsolidatePanel /></div>;
     case "skills": return <SkillsPanel />;
     case "config": return <ConfigPanel />;
+    case "audit": return <AuditPanel />;
     case "learning": return <LearningPanel />;
     case "sessions": return <SessionsPanel />;
     case "problems": return <ProblemsPanel />;

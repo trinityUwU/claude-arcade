@@ -1,7 +1,7 @@
 // Scan de la config Claude Code : CLAUDE.md, rules/, skills/, commands/, settings.json.
 // Source de vérité = les fichiers sur disque (jamais une copie DB). Lecture seule.
 import { readdir } from "node:fs/promises";
-import { join, relative } from "node:path";
+import { join, relative, sep } from "node:path";
 import { configRoot, isPatchable } from "./paths.ts";
 import { isRepo } from "./git.ts";
 import { logger } from "../logger.ts";
@@ -32,7 +32,8 @@ async function fileMeta(abs: string): Promise<FileMeta> {
 
 async function toEntry(root: string, abs: string, kind: ConfigKind): Promise<ConfigEntry> {
   const meta = await fileMeta(abs);
-  const relPath = relative(root, abs);
+  // Clé whitelist stable : toujours en '/' (git + API), même sur Windows où relative() rend des '\'.
+  const relPath = relative(root, abs).split(sep).join("/");
   const parts = relPath.split("/");
   const base = parts.at(-1) ?? relPath;
   // skills/<nom>/SKILL.md → dossier parent ; skills/<fichier>.md → nom de fichier (sans .md)

@@ -15,8 +15,11 @@ Objectif : voir `docs/NORTH-STAR.md`. Faire que Claude Code apprenne session apr
    - **Graphiques de résolution** (onglet Résolutions) : le chemin de chaque résolution en visuel, champion contre approches concurrentes.
    - **Courbe d'apprentissage** (onglet Apprentissage) : les classes déjà vues se résolvent-elles mieux ? L'injection aide-t-elle ? Mesuré, pas supposé.
    - **Injection PUSH** : les hooks `SessionStart`/`UserPromptSubmit` remettent le meilleur schéma connu dans le contexte des sessions suivantes.
+4. **Diagnostic de config** (onglet Diagnostic) — audite ta config `~/.claude` selon les normes Anthropic et détecte les mauvais patterns : fichiers **surchargés** (coût de contexte injecté), **sous-détaillés**, **sans description/trigger**, **rédigés en non-anglais** (l'anglais maximise le suivi d'instructions sur les modèles Anthropic), blocs sans structure. Le diagnostic de base est **déterministe et gratuit** (zéro token, dès le 1ᵉʳ lancement sur n'importe quelle machine). Un **audit profond** par fichier (`claude -p`) donne à la demande un verdict nuancé + une piste de réécriture.
 
 ## Lancement
+
+Multi-OS (Linux · macOS · Windows). Prérequis : [Bun](https://bun.sh) et le CLI `claude` — le scan, le dashboard et le diagnostic déterministe tournent même sans le CLI ; seules la consolidation et l'audit profond l'utilisent. Au premier lancement, Arcade lit **ta** config `~/.claude` automatiquement (rien à configurer).
 
 ```bash
 bun install

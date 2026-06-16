@@ -24,6 +24,8 @@ import { runEvolution } from "../config/evolve-job.ts";
 import { assessRevisions } from "../config/revisions.ts";
 import { revertCommit } from "../config/git.ts";
 import { configRoot } from "../config/paths.ts";
+import { auditConfig } from "../audit/report.ts";
+import { deepAuditFile } from "../audit/deep.ts";
 import type { CoverageReport, ConfigEntry, AutoSettings, Proposal } from "../config/types.ts";
 import { logger } from "../logger.ts";
 import type { ScanResult } from "../types.ts";
@@ -148,6 +150,14 @@ async function applyOneResponse(req: Request): Promise<Response> {
 async function configSettingsResponse(req: Request): Promise<Response> {
   const patch = (await req.json().catch(() => ({}))) as Partial<AutoSettings>;
   return Response.json(await saveSettings(patch));
+}
+
+/** Verdict approfondi (claude -p) d'un fichier whitelisté ; 404 si chemin refusé/illisible. */
+async function auditDeepResponse(req: Request): Promise<Response> {
+  const { path } = (await req.json().catch(() => ({}))) as { path?: string };
+  if (!path) return Response.json({ error: "path requis" }, { status: 400 });
+  const result = await deepAuditFile(path);
+  return result ? Response.json(result) : new Response("not found", { status: 404 });
 }
 
 /** Vrai si la requête vient de la machine locale (loopback). */
@@ -290,6 +300,8 @@ const server = Bun.serve({
       GET: async () => Response.json(await loadSettings()),
       POST: async (req, server) => denyRemoteWrite(server, req) ?? configSettingsResponse(req),
     },
+    "/api/audit": async () => Response.json(await auditConfig()),
+    "/api/audit/deep": { POST: async (req, server) => denyRemoteWrite(server, req) ?? auditDeepResponse(req) },
   },
   error(err) {
     logger.error({ err }, "erreur serveur");

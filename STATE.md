@@ -1,5 +1,17 @@
 # STATE — claude-arcade
-*Dernière mise à jour : 2026-06-13*
+*Dernière mise à jour : 2026-06-16*
+
+## Session 2026-06-16 — VAGUE 6 INCRÉMENT 1 : DIAGNOSTIC DE CONFIG (LIVRÉ)
+Go autonome Chris : transformer Arcade en boîte à outils de config Claude Code, open-source clé-en-main multi-OS. Cap acté dans NORTH-STAR (extension qui sert l'apprentissage). Choix verrouillés : moteur = `claude -p` headless ; boucle fermée apprentissage↔outils ; réutiliser `/prompt-architect`.
+- **Nouveau domaine `src/audit/`** (diagnostic qualité config selon normes Anthropic) : `types.ts`, `lang.ts` (détection EN vs roman, hors-code), `heuristics.ts` (surchargé/maigre/no-description/no-trigger/wall-of-text/non-anglais, seuils par kind), `grade.ts` (score + grade, étiquettes structurelles prioritaires), `report.ts` (orchestration déterministe, pires en premier), `audit-prompt.ts` + `deep.ts` (verdict approfondi `claude -p`, générateur injectable, garde whitelist).
+- **API** : `GET /api/audit` (déterministe, gratuit) + `POST /api/audit/deep` (gated localhost via `denyRemoteWrite`).
+- **Front** : `AuditPanel.tsx` + onglet « Diagnostic » (groupe Arcade). Résumé par grade + tokens, liste actionnable, bouton audit profond par fichier.
+- **Cross-platform** : `scan.ts` normalise `relPath` en `/` (Windows backslash → clé whitelist stable). `homedir()` déjà OK. README mis à jour (multi-OS, 1ᵉʳ lancement zéro-config).
+- **Validation** : tsc 0, **9 tests audit verts** (125 total hors 1 échec injection PRÉ-EXISTANT, non causé par cette session). E2E réel sur la vraie config : 39 fichiers / 67k tokens / 31 non-anglais / 3 surchargés / pire = ads-agent SKILL.md.
+- **Incrément 2 (UI Diagnostic + motion, validé Chris)** : chips booléens par norme (vrai/faux, détail au survol) au lieu des descriptions verbeuses ; filtres de grade cliquables (clic = isoler) + filtre « Analysé » ; bouton œil « Contenu » → modale avec toggle Rendu markdown stylisé (`web/lib/Markdown.tsx`, react-markdown+remark-gfm) ↔ Brut ; audit profond persisté (`deep-audits.json`) déroulable + plein écran.
+  - **Trigger qualité de prompt** : `prompt-quality.ts` (over-prompting CAPS/§9, negative-framing §2/§3) + audit profond branché sur `claude-prompting-principles.md` comme rubrique (`pe-rubric.ts`).
+  - **Motion + mode silencieux** : `web/lib/{motion,live}.tsx`. `reveal()` (montée+blur+scale, stagger, courbe silk) ; `useLiveResource` refetch silencieux sur tick SSE. **Bug clé corrigé** : `silent` ne touche que `initial` (jamais `animate`/`transition`) sinon un tick coupe l'entrée en cours. **Modales** : `createPortal` vers `<body>` (échappe au transform/filter des cartes qui cassait le `position:fixed`) + état modale unique au niveau panel (une seule ouverte).
+- **Reste à faire (Atelier)** : `src/workshop/` (prompt forge, skill forge, comparateur) réutilisant `/prompt-architect` + `evolve.generateCreate`. Édition config étendue (CLAUDE.md guardé manuel). Voir TODO.
 
 > **NORTH STAR** (`docs/NORTH-STAR.md`, immuable) : organe d'apprentissage continu temps réel sur Claude Code. Critère unique = courbe d'apprentissage PROUVÉE (session N+1 > N). Zéro modèle local, backfill manuel only, intégration via hooks, demande visuelle = graphiques de résolution. Plan magistral 4 phases dans TODO.md.
 
