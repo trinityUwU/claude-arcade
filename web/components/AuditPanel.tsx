@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Stethoscope, Loader2, Maximize2, ChevronDown, X, Eye, Code2, FileText } from "lucide-react";
@@ -77,14 +77,17 @@ function DeepBody({ d }: { d: DeepAudit }): React.JSX.Element {
 }
 
 /** Vue live pendant le streaming : markdown partiel qui se construit token par token. */
-function StreamingBody({ text }: { text: string }): React.JSX.Element {
+function StreamingBody({ text, elapsed }: { text: string; elapsed: number }): React.JSX.Element {
   const md = text.replace(/^\s*VERDICT:\s*\w*/i, "").trim();
   return (
     <div className="text-[12px] leading-relaxed">
       <div className="mb-2 flex items-center gap-2 text-white/40">
-        <Loader2 size={12} className="animate-spin" />analyse en cours (sonnet, streaming)…
+        <Loader2 size={12} className="animate-spin" />
+        {md ? "analyse en cours (sonnet, streaming)…" : `démarrage de l'analyse sonnet… ${elapsed}s`}
       </div>
-      {md ? <Markdown content={md} /> : <span className="text-white/30">…</span>}
+      {md
+        ? <Markdown content={md} />
+        : <span className="text-white/30">Le premier token arrive après l'ingestion du fichier + de la rubrique (quelques secondes).</span>}
     </div>
   );
 }
@@ -131,20 +134,33 @@ function EntryRow(
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
   const [stream, setStream] = useState<string | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  const esRef = useRef<EventSource | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stop = useCallback(() => {
+    esRef.current?.close(); esRef.current = null;
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+  }, []);
+  useEffect(() => stop, [stop]);  // ferme l'EventSource si on quitte (anti-fuite, anti-reconnexion)
 
   const runDeep = useCallback(() => {
-    setBusy(true); setStream(""); setOpen(true);
+    if (esRef.current) return;  // une seule analyse à la fois sur cette ligne
+    setBusy(true); setStream(""); setOpen(true); setElapsed(0);
+    const started = Date.now();
+    timerRef.current = setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 1000);
     const es = new EventSource(`/api/audit/deep/stream?path=${encodeURIComponent(e.relPath)}`);
+    esRef.current = es;
     es.addEventListener("delta", (ev) => {
       const { text } = JSON.parse((ev as MessageEvent).data) as { text: string };
       setStream((prev) => (prev ?? "") + text);
     });
     es.addEventListener("done", (ev) => {
       actions.onDeep(e.relPath, JSON.parse((ev as MessageEvent).data) as DeepAudit);
-      setStream(null); setBusy(false); es.close();
+      setStream(null); setBusy(false); stop();
     });
-    es.addEventListener("error", () => { setBusy(false); es.close(); });
-  }, [e.relPath, actions]);
+    es.addEventListener("error", () => { setBusy(false); stop(); });  // close → pas de reconnexion auto
+  }, [e.relPath, actions, stop]);
 
   return (
     <motion.div {...reveal(silent, rank)} {...cardHover} layout
@@ -181,7 +197,7 @@ function EntryRow(
         {(stream !== null || (deep && open)) && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
             <div className="mt-3 rounded-lg border border-white/[0.08] bg-black/20 p-3">
-              {stream !== null ? <StreamingBody text={stream} /> : deep ? <DeepBody d={deep} /> : null}
+              {stream !== null ? <StreamingBody text={stream} elapsed={elapsed} /> : deep ? <DeepBody d={deep} /> : null}
             </div>
           </motion.div>
         )}

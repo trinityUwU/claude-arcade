@@ -6,7 +6,7 @@ import { configRoot } from "../config/paths.ts";
 import { logger } from "../logger.ts";
 
 const REL = "skills/prompt-architect/references/claude-prompting-principles.md";
-const MAX_CHARS = 8_000;  // borne d'injection : on garde le cœur, pas les annexes
+const MAX_CHARS = 4_000;  // borne d'injection : cœur des principes seulement (latence + coût)
 let cache: string | null = null;
 
 /** Texte de la rubrique, ou "" si le skill prompt-architect est absent (autre utilisateur). */
