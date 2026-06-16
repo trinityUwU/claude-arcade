@@ -222,9 +222,10 @@ function EntryRow(
 }
 
 function Filters(
-  { byGrade, active, onToggle, analyzedOnly, onAnalyzed, analyzedCount }:
+  { byGrade, active, onToggle, analyzedOnly, onAnalyzed, analyzedCount, upgradedOnly, onUpgraded, upgradedCount }:
   { byGrade: Record<AuditGrade, number>; active: Set<AuditGrade>; onToggle: (g: AuditGrade) => void;
-    analyzedOnly: boolean; onAnalyzed: () => void; analyzedCount: number },
+    analyzedOnly: boolean; onAnalyzed: () => void; analyzedCount: number;
+    upgradedOnly: boolean; onUpgraded: () => void; upgradedCount: number },
 ): React.JSX.Element {
   return (
     <div className="mb-5 flex flex-wrap items-center gap-2">
@@ -238,6 +239,10 @@ function Filters(
         className={`ml-1 flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] transition disabled:opacity-30 ${analyzedOnly ? "border-sky-400/40 bg-sky-400/[0.08] text-sky-200" : "border-white/10 text-white/45 hover:text-white/70"}`}>
         <Stethoscope size={11} />{analyzedCount} analysé{analyzedCount > 1 ? "s" : ""}
       </button>
+      <button onClick={onUpgraded} disabled={upgradedCount === 0}
+        className={`flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] transition disabled:opacity-30 ${upgradedOnly ? "border-emerald-400/40 bg-emerald-400/[0.08] text-emerald-200" : "border-white/10 text-white/45 hover:text-white/70"}`}>
+        <Wand2 size={11} />{upgradedCount} corrigé{upgradedCount > 1 ? "s" : ""}
+      </button>
     </div>
   );
 }
@@ -248,6 +253,7 @@ export function AuditPanel(): React.JSX.Element {
   const { data: report, silent, error, reload } = useLiveResource<AuditReport>("/api/audit");
   const [active, setActive] = useState<Set<AuditGrade>>(new Set(GRADES));
   const [analyzedOnly, setAnalyzedOnly] = useState(false);
+  const [upgradedOnly, setUpgradedOnly] = useState(false);
   const [deepMap, setDeepMap] = useState<Map<string, DeepAudit>>(new Map());
   const [modal, setModal] = useState<Modal | null>(null);
 
@@ -278,9 +284,10 @@ export function AuditPanel(): React.JSX.Element {
     onDeep, onUpgraded,
   }), [onDeep, onUpgraded]);
 
+  const upgradedCount = useMemo(() => (report?.entries ?? []).filter((e) => e.upgradeCount > 0).length, [report]);
   const shown = useMemo(() => (report?.entries ?? []).filter(
-    (e) => active.has(e.grade) && (!analyzedOnly || deepMap.has(e.relPath)),
-  ), [report, active, analyzedOnly, deepMap]);
+    (e) => active.has(e.grade) && (!analyzedOnly || deepMap.has(e.relPath)) && (!upgradedOnly || e.upgradeCount > 0),
+  ), [report, active, analyzedOnly, upgradedOnly, deepMap]);
 
   if (error) return <PanelMessage text={`Erreur : ${error}`} />;
   if (!report) return <PanelMessage text="Diagnostic en cours…" />;
@@ -298,7 +305,8 @@ export function AuditPanel(): React.JSX.Element {
         </div>
       </header>
       <Filters byGrade={report.summary.byGrade} active={active} onToggle={toggle}
-        analyzedOnly={analyzedOnly} onAnalyzed={() => setAnalyzedOnly((v) => !v)} analyzedCount={deepMap.size} />
+        analyzedOnly={analyzedOnly} onAnalyzed={() => setAnalyzedOnly((v) => !v)} analyzedCount={deepMap.size}
+        upgradedOnly={upgradedOnly} onUpgraded={() => setUpgradedOnly((v) => !v)} upgradedCount={upgradedCount} />
       <motion.div layout className="flex flex-col gap-2">
         {shown.map((e, i) => (
           <EntryRow key={e.relPath} e={e} rank={i} silent={silent} deep={deepMap.get(e.relPath)} actions={actions} />
