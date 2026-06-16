@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { TrendingUp, TrendingDown, Minus, Repeat, Trophy } from "lucide-react";
 import type { EvolutionData, EvolutionBucket, TrendDirection } from "../../src/consolidate/types.ts";
 import { SectionHeader } from "../lib/format.tsx";
+import { useLiveResource } from "../lib/live.tsx";
+import { reveal } from "../lib/motion.ts";
 import { PanelMessage } from "./SessionsPanel.tsx";
 
 type TrendDir = "up" | "down";
@@ -120,17 +121,7 @@ function Signals({ d }: { d: EvolutionData }): React.JSX.Element {
 }
 
 export function EvolutionPanel(): React.JSX.Element {
-  const [data, setData] = useState<EvolutionData | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    try {
-      const r = await fetch("/api/evolution");
-      setData((await r.json()) as EvolutionData);
-    } catch (e: unknown) { setError(String(e)); }
-  }, []);
-
-  useEffect(() => { void load(); }, [load]);
+  const { data, silent, error } = useLiveResource<EvolutionData>("/api/evolution");
 
   if (error) return <PanelMessage text={`Erreur : ${error}`} />;
   if (!data) return <PanelMessage text="Chargement…" />;
@@ -145,7 +136,7 @@ export function EvolutionPanel(): React.JSX.Element {
           <p className="text-[12px] text-white/45">Le système d'apprentissage s'améliore-t-il ?</p>
         </div>
       </header>
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+      <motion.div {...reveal(silent)}>
         <Signals d={data} />
         {enough ? (
           <div className="flex flex-col gap-4">

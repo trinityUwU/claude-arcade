@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { Zap, PlayCircle, MessageSquare } from "lucide-react";
 import type { InjectionLog, InjectionRecord, InjectionEvent } from "../../src/consolidate/types.ts";
 import { basename, formatDate } from "../lib/format.tsx";
+import { useLiveResource } from "../lib/live.tsx";
+import { reveal } from "../lib/motion.ts";
 import { PanelMessage } from "./SessionsPanel.tsx";
 
 const EVENT_STYLE: Record<InjectionEvent, { label: string; cls: string; Icon: typeof Zap }> = {
@@ -20,11 +22,9 @@ function EventBadge({ event }: { event: InjectionEvent }): React.JSX.Element {
   );
 }
 
-function RecordRow({ r, index }: { r: InjectionRecord; index: number }): React.JSX.Element {
+function RecordRow({ r, index, silent }: { r: InjectionRecord; index: number; silent: boolean }): React.JSX.Element {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, delay: Math.min(index * 0.012, 0.3) }}
+    <motion.div {...reveal(silent, index)}
       className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3.5">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
@@ -47,17 +47,7 @@ function RecordRow({ r, index }: { r: InjectionRecord; index: number }): React.J
 }
 
 export function InjectionsPanel(): React.JSX.Element {
-  const [data, setData] = useState<InjectionLog | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    try {
-      const r = await fetch("/api/injections");
-      setData((await r.json()) as InjectionLog);
-    } catch (e: unknown) { setError(String(e)); }
-  }, []);
-
-  useEffect(() => { void load(); }, [load]);
+  const { data, silent, error } = useLiveResource<InjectionLog>("/api/injections");
 
   const counts = useMemo(() => {
     const records = data?.records ?? [];
@@ -85,7 +75,7 @@ export function InjectionsPanel(): React.JSX.Element {
         </div>
       </header>
       <div className="flex flex-col gap-2.5">
-        {data.records.map((r, i) => <RecordRow key={`${r.at}:${i}`} r={r} index={i} />)}
+        {data.records.map((r, i) => <RecordRow key={`${r.at}:${i}`} r={r} index={i} silent={silent} />)}
       </div>
     </div>
   );

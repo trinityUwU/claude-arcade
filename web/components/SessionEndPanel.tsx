@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { Activity, CheckCircle2, SkipForward, CircleSlash, XCircle } from "lucide-react";
 import type { SessionEndLog, SessionEndEvent, SessionEndOutcome } from "../../src/consolidate/types.ts";
 import { basename, formatDate, qualityColor } from "../lib/format.tsx";
+import { useLiveResource } from "../lib/live.tsx";
+import { reveal } from "../lib/motion.ts";
 import { PanelMessage } from "./SessionsPanel.tsx";
 
 const OUTCOME_STYLE: Record<SessionEndOutcome, { label: string; cls: string; Icon: typeof Activity }> = {
@@ -22,11 +24,9 @@ function OutcomeBadge({ outcome }: { outcome: SessionEndOutcome }): React.JSX.El
   );
 }
 
-function EventRow({ e, index }: { e: SessionEndEvent; index: number }): React.JSX.Element {
+function EventRow({ e, index, silent }: { e: SessionEndEvent; index: number; silent: boolean }): React.JSX.Element {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, delay: Math.min(index * 0.012, 0.3) }}
+    <motion.div {...reveal(silent, index)}
       className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3.5">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
@@ -44,17 +44,7 @@ function EventRow({ e, index }: { e: SessionEndEvent; index: number }): React.JS
 }
 
 export function SessionEndPanel(): React.JSX.Element {
-  const [data, setData] = useState<SessionEndLog | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    try {
-      const r = await fetch("/api/session-events");
-      setData((await r.json()) as SessionEndLog);
-    } catch (e: unknown) { setError(String(e)); }
-  }, []);
-
-  useEffect(() => { void load(); }, [load]);
+  const { data, silent, error } = useLiveResource<SessionEndLog>("/api/session-events");
 
   const consolidated = useMemo(
     () => (data?.records ?? []).filter((e) => e.outcome === "consolidated").length,
@@ -79,7 +69,7 @@ export function SessionEndPanel(): React.JSX.Element {
         </div>
       </header>
       <div className="flex flex-col gap-2.5">
-        {data.records.map((e, i) => <EventRow key={`${e.at}:${i}`} e={e} index={i} />)}
+        {data.records.map((e, i) => <EventRow key={`${e.at}:${i}`} e={e} index={i} silent={silent} />)}
       </div>
     </div>
   );

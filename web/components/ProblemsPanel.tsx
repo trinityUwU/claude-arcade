@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { TriangleAlert, ChevronRight } from "lucide-react";
+import { useLiveResource } from "../lib/live.tsx";
+import { reveal } from "../lib/motion.ts";
 import type {
   ChampionsData, ChampionEntry, SchemaInstance, ProblemSeverity,
 } from "../../src/consolidate/types.ts";
@@ -35,15 +37,13 @@ function ContenderRow({ c }: { c: SchemaInstance }): React.JSX.Element {
   );
 }
 
-function CategoryCard({ e, filter, index }: { e: ChampionEntry; filter: Filter; index: number }): React.JSX.Element {
+function CategoryCard({ e, filter, index, silent }: { e: ChampionEntry; filter: Filter; index: number; silent: boolean }): React.JSX.Element {
   const [open, setOpen] = useState(false);
   const counts = severityCounts(e.contenders);
   const pct = Math.round(e.resolvedRate * 100);
   const shown = filter === "all" ? e.contenders : e.contenders.filter((c) => c.severity === filter);
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.28, delay: Math.min(index * 0.015, 0.3) }}
+    <motion.div {...reveal(silent, index)}
       className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">
       <button onClick={() => setOpen(!open)} className="flex w-full items-center gap-3 text-left">
         <ChevronRight size={16} strokeWidth={2}
@@ -83,18 +83,8 @@ function FilterBar({ filter, onPick }: { filter: Filter; onPick: (f: Filter) => 
 }
 
 export function ProblemsPanel(): React.JSX.Element {
-  const [data, setData] = useState<ChampionsData | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { data, silent, error } = useLiveResource<ChampionsData>("/api/champions");
   const [filter, setFilter] = useState<Filter>("all");
-
-  const load = useCallback(async () => {
-    try {
-      const r = await fetch("/api/champions");
-      setData((await r.json()) as ChampionsData);
-    } catch (e: unknown) { setError(String(e)); }
-  }, []);
-
-  useEffect(() => { void load(); }, [load]);
 
   const sorted = useMemo(
     () => (data ? [...data.categories].sort((a, b) => b.occurrences - a.occurrences) : []),
@@ -117,7 +107,7 @@ export function ProblemsPanel(): React.JSX.Element {
       </header>
       <FilterBar filter={filter} onPick={setFilter} />
       <div className="flex flex-col gap-3">
-        {sorted.map((e, i) => <CategoryCard key={e.category} e={e} filter={filter} index={i} />)}
+        {sorted.map((e, i) => <CategoryCard key={e.category} e={e} filter={filter} index={i} silent={silent} />)}
       </div>
     </div>
   );

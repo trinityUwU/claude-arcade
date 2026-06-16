@@ -1,6 +1,8 @@
 // Phase 3 — onglet « Apprentissage » : la PREUVE du North Star (session N+1 > N). KPI causaux en
 // tête (dont l'injectionLift = impact mesuré du PUSH) + trajectoire de fitness par classe récurrente.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { useLiveResource } from "../lib/live.tsx";
+import { reveal } from "../lib/motion.ts";
 import { AnimatePresence, motion } from "framer-motion";
 import { LineChart, TrendingUp, TrendingDown, Zap, ChevronRight, PanelRightOpen } from "lucide-react";
 import type { LearningData, ClassLearningCurve, LearningEncounter } from "../../src/consolidate/types.ts";
@@ -124,19 +126,9 @@ function CurveRow({ curve, expanded, onToggle, onOpen }:
 }
 
 export function LearningPanel(): React.JSX.Element {
-  const [data, setData] = useState<LearningData | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { data, silent, error } = useLiveResource<LearningData>("/api/learning");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [open, setOpen] = useState<OpenSession | null>(null);
-
-  const load = useCallback(async () => {
-    try {
-      const r = await fetch("/api/learning");
-      setData((await r.json()) as LearningData);
-    } catch (e: unknown) { setError(String(e)); }
-  }, []);
-
-  useEffect(() => { void load(); }, [load]);
 
   const openFrom = useCallback((label: string) => (e: LearningEncounter): void => {
     setOpen({ sessionId: e.sessionId, title: e.topic || label, subtitle: label });
@@ -162,8 +154,7 @@ export function LearningPanel(): React.JSX.Element {
             Pas encore de classe récurrente. La courbe se construit à mesure que les mêmes problèmes reviennent.
           </p>
         ) : (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
-            className="mt-5 space-y-2">
+          <motion.div {...reveal(silent)} className="mt-5 space-y-2">
             {data.curves.map((c) => (
               <CurveRow key={c.classId} curve={c} expanded={expanded === c.classId}
                 onToggle={() => setExpanded(expanded === c.classId ? null : c.classId)} onOpen={openFrom(c.label)} />

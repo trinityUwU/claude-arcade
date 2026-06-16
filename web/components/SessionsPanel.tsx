@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { ScrollText, ChevronRight, NotebookPen, Paperclip } from "lucide-react";
+import { useLiveResource } from "../lib/live.tsx";
+import { reveal } from "../lib/motion.ts";
 import type { SessionSummary, Problem } from "../../src/consolidate/types.ts";
 import type { SessionNote, NoteKind } from "../../src/notes/types.ts";
 import {
@@ -109,15 +111,13 @@ function SessionExtras({ s }: { s: SessionSummary }): React.JSX.Element {
   );
 }
 
-function SessionCard({ s, index }: { s: SessionSummary; index: number }): React.JSX.Element {
+function SessionCard({ s, index, silent }: { s: SessionSummary; index: number; silent: boolean }): React.JSX.Element {
   const [open, setOpen] = useState(false);
   const problems = s.problems ?? [];
   const notes = s.notes ?? [];
   const isV1 = s.difficulty === undefined && s.problems === undefined;
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.28, delay: Math.min(index * 0.015, 0.3) }}
+    <motion.div {...reveal(silent, index)}
       className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">
       <button onClick={() => setOpen(!open)} className="flex w-full items-start gap-3 text-left">
         <ChevronRight size={16} strokeWidth={2}
@@ -158,18 +158,8 @@ function SessionCard({ s, index }: { s: SessionSummary; index: number }): React.
 }
 
 export function SessionsPanel(): React.JSX.Element {
-  const [data, setData] = useState<SessionSummary[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    try {
-      const r = await fetch("/api/sessions");
-      const list = (await r.json()) as SessionSummary[];
-      setData([...list].sort((a, b) => b.summarizedAt - a.summarizedAt));
-    } catch (e: unknown) { setError(String(e)); }
-  }, []);
-
-  useEffect(() => { void load(); }, [load]);
+  const { data: raw, silent, error } = useLiveResource<SessionSummary[]>("/api/sessions");
+  const data = useMemo(() => raw ? [...raw].sort((a, b) => b.summarizedAt - a.summarizedAt) : null, [raw]);
 
   if (error) return <PanelMessage text={`Erreur : ${error}`} />;
   if (!data) return <PanelMessage text="Chargement…" />;
@@ -185,7 +175,7 @@ export function SessionsPanel(): React.JSX.Element {
         </div>
       </header>
       <div className="flex flex-col gap-3">
-        {data.map((s, i) => <SessionCard key={s.sessionId} s={s} index={i} />)}
+        {data.map((s, i) => <SessionCard key={s.sessionId} s={s} index={i} silent={silent} />)}
       </div>
     </div>
   );

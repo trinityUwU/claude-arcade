@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Trophy, Crown, TrendingUp } from "lucide-react";
+import { useLiveResource } from "../lib/live.tsx";
 import type { ChampionsData, ChampionEntry, SchemaInstance } from "../../src/consolidate/types.ts";
 import { fitnessBreakdown, type FitnessBreakdown } from "../../src/consolidate/fitness.ts";
 import { fitnessColor, fitnessBg, OutcomeBadge, SeverityBadge, SectionHeader, SourceBadge } from "../lib/format.tsx";
@@ -136,18 +137,8 @@ function CategoryList({ entries, selected, onPick }:
 }
 
 export function SchemasPanel(): React.JSX.Element {
-  const [data, setData] = useState<ChampionsData | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { data, error } = useLiveResource<ChampionsData>("/api/champions");
   const [selected, setSelected] = useState<string>("");
-
-  const load = useCallback(async () => {
-    try {
-      const r = await fetch("/api/champions");
-      setData((await r.json()) as ChampionsData);
-    } catch (e: unknown) { setError(String(e)); }
-  }, []);
-
-  useEffect(() => { void load(); }, [load]);
 
   const sorted = useMemo(
     () => (data ? [...data.categories].sort((a, b) => b.occurrences - a.occurrences) : []),
