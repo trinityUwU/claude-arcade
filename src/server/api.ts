@@ -26,6 +26,8 @@ import { revertCommit } from "../config/git.ts";
 import { configRoot } from "../config/paths.ts";
 import { auditConfig } from "../audit/report.ts";
 import { deepAuditFile } from "../audit/deep.ts";
+import { correctFile, applyUpgrade } from "../audit/upgrade.ts";
+import { loadUpgrades } from "../audit/upgrade-store.ts";
 import type { CoverageReport, ConfigEntry, AutoSettings, Proposal } from "../config/types.ts";
 import { logger } from "../logger.ts";
 import type { ScanResult } from "../types.ts";
@@ -152,9 +154,12 @@ async function configSettingsResponse(req: Request): Promise<Response> {
   return Response.json(await saveSettings(patch));
 }
 
-/** Audit profond streamé (SSE) : events `delta` (texte live) puis `done` (verdict+coût).
- *  Local-only (dépense de tokens). Garde whitelist déléguée à deepAuditFile. */
-function auditDeepStream(req: Request, server: Server<unknown>): Response {
+/** Flux SSE générique claude -p : events `delta` (texte live) puis `done`/`error`.
+ *  Local-only (dépense de tokens). `run` reçoit le chemin + un onText et rend le résultat ou null. */
+function claudeSSE<T>(
+  req: Request, server: Server<unknown>,
+  run: (path: string, onText: (t: string) => void) => Promise<T | null>,
+): Response {
   if (!ALLOW_REMOTE_WRITES && !isLocalRequest(server, req)) return new Response("local only", { status: 403 });
   const path = new URL(req.url).searchParams.get("path");
   if (!path) return new Response("missing path", { status: 400 });
@@ -164,7 +169,7 @@ function auditDeepStream(req: Request, server: Server<unknown>): Response {
         c.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
       };
       try {
-        const result = await deepAuditFile(path, (text) => send("delta", { text }));
+        const result = await run(path, (text) => send("delta", { text }));
         send(result ? "done" : "error", result ?? { error: "not found" });
       } catch (err) {
         send("error", { error: String(err) });
@@ -172,6 +177,13 @@ function auditDeepStream(req: Request, server: Server<unknown>): Response {
     },
   });
   return new Response(stream, { headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache" } });
+}
+
+/** Applique une correction au fichier (snapshot+commit+reset analyse). Local-only (écrit la config). */
+async function upgradeResponse(req: Request): Promise<Response> {
+  const { path, after, costUsd } = (await req.json().catch(() => ({}))) as { path?: string; after?: string; costUsd?: number };
+  if (!path || !after) return Response.json({ error: "path et after requis" }, { status: 400 });
+  return Response.json(await applyUpgrade(path, after, costUsd ?? 0));
 }
 
 /** Vrai si la requête vient de la machine locale (loopback). */
@@ -315,7 +327,10 @@ const server = Bun.serve({
       POST: async (req, server) => denyRemoteWrite(server, req) ?? configSettingsResponse(req),
     },
     "/api/audit": async () => Response.json(await auditConfig()),
-    "/api/audit/deep/stream": (req, server) => auditDeepStream(req, server),
+    "/api/audit/deep/stream": (req, server) => claudeSSE(req, server, (p, onText) => deepAuditFile(p, onText)),
+    "/api/audit/correct/stream": (req, server) => claudeSSE(req, server, (p, onText) => correctFile(p, onText)),
+    "/api/audit/upgrade": { POST: async (req, server) => denyRemoteWrite(server, req) ?? upgradeResponse(req) },
+    "/api/audit/upgrades": async (req) => Response.json(await loadUpgrades(new URL(req.url).searchParams.get("path") ?? "")),
   },
   error(err) {
     logger.error({ err }, "erreur serveur");

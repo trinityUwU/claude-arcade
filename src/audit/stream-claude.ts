@@ -8,7 +8,7 @@ const SYSTEM = "Tu es un auditeur de config Claude Code. Tu réponds en françai
 const EMPTY_MCP = join(import.meta.dir, "..", "consolidate", "empty-mcp.json");
 
 export interface StreamResult { text: string; costUsd: number; }
-export type StreamRunner = (prompt: string, onText: (chunk: string) => void) => Promise<StreamResult>;
+export type StreamRunner = (prompt: string, onText: (chunk: string) => void, model?: string) => Promise<StreamResult>;
 
 interface Delta { type: string; text?: string }
 interface StreamLine {

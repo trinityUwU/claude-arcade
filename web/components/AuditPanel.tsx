@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Stethoscope, Loader2, Maximize2, ChevronDown, X, Eye, Code2, FileText } from "lucide-react";
-import type { AuditReport, EntryAudit, AuditGrade, AuditCheck, DeepAudit } from "../../src/audit/types.ts";
+import { Stethoscope, Loader2, Maximize2, ChevronDown, Eye, Code2, FileText, Wand2, ArrowUpCircle, X, History } from "lucide-react";
+import type { AuditReport, EntryAudit, AuditGrade, AuditCheck, DeepAudit, Correction } from "../../src/audit/types.ts";
 import { useLiveResource } from "../lib/live.tsx";
+import { useClaudeStream } from "../lib/useClaudeStream.ts";
 import { reveal, cardHover } from "../lib/motion.ts";
 import { Markdown } from "../lib/Markdown.tsx";
+import { Overlay } from "../lib/Overlay.tsx";
+import { UpgradeHistory } from "./UpgradeHistory.tsx";
 import { PanelMessage } from "./SessionsPanel.tsx";
 
 const GRADES: AuditGrade[] = ["excellent", "solid", "mediocre", "overloaded", "thin"];
@@ -16,6 +18,7 @@ const GRADE_STYLE: Record<AuditGrade, { label: string; cls: string }> = {
   overloaded: { label: "Surchargé", cls: "text-rose-300 border-rose-400/30 bg-rose-400/[0.06]" },
   thin: { label: "Maigre", cls: "text-fuchsia-300 border-fuchsia-400/30 bg-fuchsia-400/[0.06]" },
 };
+const BTN = "flex items-center gap-1.5 rounded-md border border-white/10 px-2 py-1 text-[11px] text-white/55 hover:text-white/80 disabled:opacity-50";
 
 function GradeBadge({ grade }: { grade: AuditGrade }): React.JSX.Element {
   const s = GRADE_STYLE[grade];
@@ -27,34 +30,9 @@ function CheckChip({ c }: { c: AuditCheck }): React.JSX.Element {
     : c.severity === "bad" ? "border-rose-400/40 text-rose-200" : "border-amber-400/40 text-amber-200";
   const dot = c.ok ? "bg-emerald-400" : c.severity === "bad" ? "bg-rose-400" : "bg-amber-400";
   return (
-    <span title={c.message ?? `${c.label} : OK`}
-      className={`flex items-center gap-1.5 rounded-md border px-1.5 py-0.5 text-[11px] ${tone}`}>
+    <span title={c.message ?? `${c.label} : OK`} className={`flex items-center gap-1.5 rounded-md border px-1.5 py-0.5 text-[11px] ${tone}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />{c.label}
     </span>
-  );
-}
-
-function Overlay(
-  { title, onClose, children, headerExtra }:
-  { title: string; onClose: () => void; children: React.ReactNode; headerExtra?: React.ReactNode },
-): React.JSX.Element {
-  // Portal vers <body> : échappe au transform/filter des cartes (sinon `fixed` se cadre sur la carte).
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6" onClick={onClose}>
-      <motion.div initial={{ scale: 0.96, opacity: 0, y: 8 }} animate={{ scale: 1, opacity: 1, y: 0 }} transition={{ duration: 0.24 }}
-        onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[82vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0c0c10]">
-        <div className="flex items-center justify-between gap-3 border-b border-white/[0.06] px-5 py-3">
-          <span className="truncate font-mono text-[13px] text-white/85">{title}</span>
-          <div className="flex shrink-0 items-center gap-1.5">
-            {headerExtra}
-            <button onClick={onClose} className="text-white/40 hover:text-white/80"><X size={18} /></button>
-          </div>
-        </div>
-        <div className="overflow-y-auto p-5">{children}</div>
-      </motion.div>
-    </div>,
-    document.body,
   );
 }
 
@@ -62,7 +40,7 @@ function DeepBody({ d }: { d: DeepAudit }): React.JSX.Element {
   return (
     <div className="text-[12px] leading-relaxed">
       <div className="mb-2 flex items-center gap-2">
-        <GradeBadge grade={d.verdict} /><span className="text-white/40">verdict approfondi</span>
+        <GradeBadge grade={d.verdict} /><span className="text-white/40">verdict approfondi (sonnet)</span>
         <span className="ml-auto rounded-md border border-emerald-400/20 px-1.5 py-0.5 text-[10px] text-emerald-200/70">${d.costUsd.toFixed(4)}</span>
       </div>
       {d.markdown ? <Markdown content={d.markdown} /> : (
@@ -76,8 +54,8 @@ function DeepBody({ d }: { d: DeepAudit }): React.JSX.Element {
   );
 }
 
-/** Vue live pendant le streaming : markdown partiel qui se construit token par token. */
-function StreamingBody({ text, elapsed }: { text: string; elapsed: number }): React.JSX.Element {
+/** Vue live d'analyse (markdown qui se construit, ligne VERDICT masquée). */
+function AnalysisStreaming({ text, elapsed }: { text: string; elapsed: number }): React.JSX.Element {
   const md = text.replace(/^\s*VERDICT:\s*\w*/i, "").trim();
   return (
     <div className="text-[12px] leading-relaxed">
@@ -85,16 +63,53 @@ function StreamingBody({ text, elapsed }: { text: string; elapsed: number }): Re
         <Loader2 size={12} className="animate-spin" />
         {md ? "analyse en cours (sonnet, streaming)…" : `démarrage de l'analyse sonnet… ${elapsed}s`}
       </div>
-      {md
-        ? <Markdown content={md} />
-        : <span className="text-white/30">Le premier token arrive après l'ingestion du fichier + de la rubrique (quelques secondes).</span>}
+      {md ? <Markdown content={md} /> : <span className="text-white/30">Premier token après ingestion du fichier + rubrique (quelques secondes).</span>}
+    </div>
+  );
+}
+
+/** Vue live de correction : on masque le préambule, on affiche le fichier dès la sentinelle. */
+function CorrectionStreaming({ text, elapsed }: { text: string; elapsed: number }): React.JSX.Element {
+  const START = "===ARCADE_CORRECTION_START===";
+  const i = text.indexOf(START);
+  const file = i >= 0 ? text.slice(i + START.length).replace("===ARCADE_CORRECTION_END===", "").trimStart() : "";
+  return (
+    <div className="text-[12px] leading-relaxed">
+      <div className="mb-2 flex items-center gap-2 text-fuchsia-200/70">
+        <Loader2 size={12} className="animate-spin" />
+        {file ? "correction en cours (opus, streaming)…" : `analyse & rédaction par opus… ${elapsed}s`}
+      </div>
+      <pre className="max-h-[40vh] overflow-y-auto whitespace-pre-wrap break-words font-mono text-[12px] text-white/75">{file || "…"}</pre>
+    </div>
+  );
+}
+
+/** Correction opus terminée, avant application : aperçu + Mettre à jour / Annuler. */
+function CorrectionReview(
+  { c, applying, onApply, onCancel }: { c: Correction; applying: boolean; onApply: () => void; onCancel: () => void },
+): React.JSX.Element {
+  return (
+    <div className="text-[12px] leading-relaxed">
+      <div className="mb-2 flex items-center gap-2">
+        <Wand2 size={13} className="text-fuchsia-200" /><span className="text-white/55">correction opus prête</span>
+        <span className="text-white/30">{c.before.length} → {c.after.length} c.</span>
+        <span className="ml-auto rounded-md border border-fuchsia-400/20 px-1.5 py-0.5 text-[10px] text-fuchsia-200/70">${c.costUsd.toFixed(4)}</span>
+      </div>
+      <pre className="mb-2 max-h-[40vh] overflow-y-auto whitespace-pre-wrap break-words rounded-lg bg-black/20 p-2 font-mono text-[12px] text-white/75">{c.after}</pre>
+      <div className="flex items-center gap-2">
+        <button onClick={onApply} disabled={applying}
+          className="flex items-center gap-1.5 rounded-md border border-emerald-400/40 bg-emerald-400/[0.08] px-2.5 py-1 text-[11px] font-semibold text-emerald-200 hover:bg-emerald-400/[0.14] disabled:opacity-50">
+          {applying ? <Loader2 size={12} className="animate-spin" /> : <ArrowUpCircle size={12} />}Mettre à jour le fichier
+        </button>
+        <button onClick={onCancel} disabled={applying} className={BTN}><X size={12} />Annuler</button>
+      </div>
     </div>
   );
 }
 
 function ContentModal({ relPath, onClose }: { relPath: string; onClose: () => void }): React.JSX.Element {
   const [content, setContent] = useState<string | null>(null);
-  const [rendered, setRendered] = useState(relPath.endsWith(".md"));  // markdown stylisé par défaut
+  const [rendered, setRendered] = useState(relPath.endsWith(".md"));
   useEffect(() => {
     void (async () => {
       try {
@@ -103,10 +118,8 @@ function ContentModal({ relPath, onClose }: { relPath: string; onClose: () => vo
       } catch { setContent("(erreur de lecture)"); }
     })();
   }, [relPath]);
-
   const toggle = (
-    <button onClick={() => setRendered((v) => !v)} title={rendered ? "Voir le brut" : "Voir le rendu stylisé"}
-      className="flex items-center gap-1.5 rounded-md border border-white/10 px-2 py-1 text-[11px] text-white/55 hover:text-white/85">
+    <button onClick={() => setRendered((v) => !v)} className="flex items-center gap-1.5 rounded-md border border-white/10 px-2 py-1 text-[11px] text-white/55 hover:text-white/85">
       {rendered ? <><Code2 size={12} />Brut</> : <><FileText size={12} />Rendu</>}
     </button>
   );
@@ -119,49 +132,38 @@ function ContentModal({ relPath, onClose }: { relPath: string; onClose: () => vo
   );
 }
 
-const BTN = "flex items-center gap-1.5 rounded-md border border-white/10 px-2 py-1 text-[11px] text-white/55 hover:text-white/80 disabled:opacity-50";
-
 interface RowActions {
   onContent: (path: string) => void;
   onFullscreen: (path: string) => void;
+  onHistory: (path: string) => void;
   onDeep: (path: string, d: DeepAudit) => void;
+  onUpgraded: (path: string) => void;
 }
 
 function EntryRow(
-  { e, rank, silent, deep, actions }:
-  { e: EntryAudit; rank: number; silent: boolean; deep?: DeepAudit; actions: RowActions },
+  { e, rank, silent, deep, actions }: { e: EntryAudit; rank: number; silent: boolean; deep?: DeepAudit; actions: RowActions },
 ): React.JSX.Element {
-  const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
-  const [stream, setStream] = useState<string | null>(null);
-  const [elapsed, setElapsed] = useState(0);
-  const esRef = useRef<EventSource | null>(null);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [correction, setCorrection] = useState<Correction | null>(null);
+  const [applying, setApplying] = useState(false);
+  const enc = encodeURIComponent(e.relPath);
+  const analysis = useClaudeStream<DeepAudit>(`/api/audit/deep/stream?path=${enc}`, (d) => actions.onDeep(e.relPath, d));
+  const correct = useClaudeStream<Correction>(`/api/audit/correct/stream?path=${enc}`, (c) => setCorrection(c));
 
-  const stop = useCallback(() => {
-    esRef.current?.close(); esRef.current = null;
-    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-  }, []);
-  useEffect(() => stop, [stop]);  // ferme l'EventSource si on quitte (anti-fuite, anti-reconnexion)
+  const runDeep = useCallback(() => { setOpen(true); analysis.start(); }, [analysis]);
+  const runCorrect = useCallback(() => { setOpen(true); setCorrection(null); correct.start(); }, [correct]);
+  const apply = useCallback(async () => {
+    if (!correction) return;
+    setApplying(true);
+    try {
+      const r = await fetch("/api/audit/upgrade", {
+        method: "POST", body: JSON.stringify({ path: e.relPath, after: correction.after, costUsd: correction.costUsd }),
+      });
+      if (r.ok) { setCorrection(null); actions.onUpgraded(e.relPath); }  // reset → la boucle recommence
+    } finally { setApplying(false); }
+  }, [correction, e.relPath, actions]);
 
-  const runDeep = useCallback(() => {
-    if (esRef.current) return;  // une seule analyse à la fois sur cette ligne
-    setBusy(true); setStream(""); setOpen(true); setElapsed(0);
-    const started = Date.now();
-    timerRef.current = setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 1000);
-    const es = new EventSource(`/api/audit/deep/stream?path=${encodeURIComponent(e.relPath)}`);
-    esRef.current = es;
-    es.addEventListener("delta", (ev) => {
-      const { text } = JSON.parse((ev as MessageEvent).data) as { text: string };
-      setStream((prev) => (prev ?? "") + text);
-    });
-    es.addEventListener("done", (ev) => {
-      actions.onDeep(e.relPath, JSON.parse((ev as MessageEvent).data) as DeepAudit);
-      setStream(null); setBusy(false); stop();
-    });
-    es.addEventListener("error", () => { setBusy(false); stop(); });  // close → pas de reconnexion auto
-  }, [e.relPath, actions, stop]);
-
+  const expandOpen = analysis.running || correct.running || correction !== null || (deep && open);
   return (
     <motion.div {...reveal(silent, rank)} {...cardHover} layout
       className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3 transition-colors hover:border-white/[0.14] hover:bg-white/[0.035]">
@@ -171,18 +173,18 @@ function EntryRow(
           <span className="shrink-0 text-[11px] text-white/30">~{e.estTokens} tok</span>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {deep && <span className="rounded-md border border-white/10 px-1.5 py-0.5 text-[10px] text-white/40">analysé</span>}
+          {e.upgradeCount > 0 && <span className="rounded-md border border-emerald-400/20 px-1.5 py-0.5 text-[10px] text-emerald-200/60">↑{e.upgradeCount}</span>}
           <span className="text-[11px] tabular-nums text-white/40">{e.score}/100</span>
           <GradeBadge grade={e.grade} />
         </div>
       </div>
       <div className="mt-2.5 flex flex-wrap gap-1.5">{e.checks.map((c) => <CheckChip key={c.code} c={c} />)}</div>
-      <div className="mt-2.5 flex items-center gap-2">
+      <div className="mt-2.5 flex flex-wrap items-center gap-2">
         <button onClick={() => actions.onContent(e.relPath)} className={BTN}><Eye size={12} />Contenu</button>
         {!deep ? (
-          <button onClick={runDeep} disabled={busy} className={BTN}>
-            {busy ? <Loader2 size={12} className="animate-spin" /> : <Stethoscope size={12} />}
-            {busy ? "Analyse claude -p…" : "Audit profond (claude -p)"}
+          <button onClick={runDeep} disabled={analysis.running} className={BTN}>
+            {analysis.running ? <Loader2 size={12} className="animate-spin" /> : <Stethoscope size={12} />}
+            {analysis.running ? "Analyse sonnet…" : "Audit profond (sonnet)"}
           </button>
         ) : (
           <>
@@ -190,14 +192,27 @@ function EntryRow(
               <ChevronDown size={12} className={`transition-transform ${open ? "rotate-180" : ""}`} />{open ? "Replier" : "Dérouler"}
             </button>
             <button onClick={() => actions.onFullscreen(e.relPath)} className={BTN}><Maximize2 size={12} />Plein écran</button>
+            {!correction && (
+              <button onClick={runCorrect} disabled={correct.running}
+                className="flex items-center gap-1.5 rounded-md border border-fuchsia-400/30 bg-fuchsia-400/[0.06] px-2 py-1 text-[11px] text-fuchsia-200 hover:bg-fuchsia-400/[0.12] disabled:opacity-50">
+                {correct.running ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />}
+                {correct.running ? "Correction opus…" : "Corriger (opus)"}
+              </button>
+            )}
           </>
+        )}
+        {e.upgradeCount > 0 && (
+          <button onClick={() => actions.onHistory(e.relPath)} className={BTN}><History size={12} />Historique ({e.upgradeCount})</button>
         )}
       </div>
       <AnimatePresence>
-        {(stream !== null || (deep && open)) && (
+        {expandOpen && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
             <div className="mt-3 rounded-lg border border-white/[0.08] bg-black/20 p-3">
-              {stream !== null ? <StreamingBody text={stream} elapsed={elapsed} /> : deep ? <DeepBody d={deep} /> : null}
+              {analysis.running ? <AnalysisStreaming text={analysis.text ?? ""} elapsed={analysis.elapsed} />
+                : correct.running ? <CorrectionStreaming text={correct.text ?? ""} elapsed={correct.elapsed} />
+                : correction ? <CorrectionReview c={correction} applying={applying} onApply={apply} onCancel={() => setCorrection(null)} />
+                : deep ? <DeepBody d={deep} /> : null}
             </div>
           </motion.div>
         )}
@@ -227,14 +242,15 @@ function Filters(
   );
 }
 
+type Modal = { kind: "content" | "deep" | "upgrades"; relPath: string };
+
 export function AuditPanel(): React.JSX.Element {
-  const { data: report, silent, error } = useLiveResource<AuditReport>("/api/audit");
+  const { data: report, silent, error, reload } = useLiveResource<AuditReport>("/api/audit");
   const [active, setActive] = useState<Set<AuditGrade>>(new Set(GRADES));
   const [analyzedOnly, setAnalyzedOnly] = useState(false);
   const [deepMap, setDeepMap] = useState<Map<string, DeepAudit>>(new Map());
-  const [modal, setModal] = useState<{ kind: "content" | "deep"; relPath: string } | null>(null);
+  const [modal, setModal] = useState<Modal | null>(null);
 
-  // Réhydrate les verdicts persistés depuis le rapport (durables entre rechargements).
   useEffect(() => {
     if (!report) return;
     setDeepMap((prev) => {
@@ -251,11 +267,16 @@ export function AuditPanel(): React.JSX.Element {
     return next.size === 0 ? new Set(GRADES) : next;
   }), []);
   const onDeep = useCallback((path: string, d: DeepAudit) => setDeepMap((p) => new Map(p).set(path, d)), []);
+  const onUpgraded = useCallback((path: string) => {
+    setDeepMap((p) => { const n = new Map(p); n.delete(path); return n; });  // reset analyse
+    reload();  // recharge le rapport : fichier corrigé → nouveaux score/checks + upgradeCount
+  }, [reload]);
   const actions = useMemo<RowActions>(() => ({
     onContent: (relPath) => setModal({ kind: "content", relPath }),
     onFullscreen: (relPath) => setModal({ kind: "deep", relPath }),
-    onDeep,
-  }), [onDeep]);
+    onHistory: (relPath) => setModal({ kind: "upgrades", relPath }),
+    onDeep, onUpgraded,
+  }), [onDeep, onUpgraded]);
 
   const shown = useMemo(() => (report?.entries ?? []).filter(
     (e) => active.has(e.grade) && (!analyzedOnly || deepMap.has(e.relPath)),
@@ -287,6 +308,7 @@ export function AuditPanel(): React.JSX.Element {
       {modal?.kind === "deep" && deepMap.has(modal.relPath) && (
         <Overlay title={modal.relPath} onClose={() => setModal(null)}><DeepBody d={deepMap.get(modal.relPath)!} /></Overlay>
       )}
+      {modal?.kind === "upgrades" && <UpgradeHistory relPath={modal.relPath} onClose={() => setModal(null)} />}
     </div>
   );
 }

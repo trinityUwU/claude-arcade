@@ -5,6 +5,7 @@ import { runHeuristics } from "../src/audit/heuristics.ts";
 import { scoreFromFlags, gradeFromFlags } from "../src/audit/grade.ts";
 import { deepAuditFile, parseStreamed } from "../src/audit/deep.ts";
 import { buildChecks } from "../src/audit/checks.ts";
+import { unwrap, correctFile } from "../src/audit/upgrade.ts";
 import type { ConfigEntry, ConfigKind } from "../src/config/types.ts";
 
 function entry(over: Partial<ConfigEntry>): ConfigEntry {
@@ -97,4 +98,19 @@ test("parseStreamed : extrait le verdict de la 1ʳᵉ ligne + markdown + coût",
 
 test("parseStreamed : verdict inconnu → mediocre par défaut", () => {
   expect(parseStreamed("p", "VERDICT: bizarre\ntexte", 0).verdict).toBe("mediocre");
+});
+
+test("unwrap : extrait entre sentinelles, ignore le préambule d'opus", () => {
+  const raw = "Tâche simple, je rédige.\n===ARCADE_CORRECTION_START===\n# Titre\ncorps\n===ARCADE_CORRECTION_END===\nvoilà";
+  expect(unwrap(raw)).toBe("# Titre\ncorps");
+});
+
+test("unwrap : fallback enrobage ``` si sentinelles absentes", () => {
+  expect(unwrap("```md\n# Titre\ncorps\n```")).toBe("# Titre\ncorps");
+  expect(unwrap("contenu nu")).toBe("contenu nu");
+});
+
+test("correctFile : chemin hors scan refusé (null, zéro token)", async () => {
+  const r = await correctFile("../../etc/passwd");
+  expect(r).toBeNull();
 });

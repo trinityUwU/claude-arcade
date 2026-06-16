@@ -25,14 +25,24 @@ export async function loadDeepAudits(): Promise<Record<string, DeepAudit>> {
   return {};
 }
 
+async function writeStore(audits: Record<string, DeepAudit>): Promise<void> {
+  await mkdir(stateDir(), { recursive: true });
+  await Bun.write(storePath(), JSON.stringify({ generatedAt: Date.now(), audits }, null, 2));
+}
+
 /** Enregistre/écrase le verdict approfondi d'un fichier (clé = relPath). */
 export async function saveDeepAudit(audit: DeepAudit): Promise<void> {
   const audits = await loadDeepAudits();
   audits[audit.relPath] = audit;
-  try {
-    await mkdir(stateDir(), { recursive: true });
-    await Bun.write(storePath(), JSON.stringify({ generatedAt: Date.now(), audits }, null, 2));
-  } catch (err) {
-    logger.error({ err, relPath: audit.relPath }, "saveDeepAudit failed");
-  }
+  try { await writeStore(audits); }
+  catch (err) { logger.error({ err, relPath: audit.relPath }, "saveDeepAudit failed"); }
+}
+
+/** Supprime le verdict d'un fichier (reset après upgrade → on peut ré-analyser). */
+export async function clearDeepAudit(relPath: string): Promise<void> {
+  const audits = await loadDeepAudits();
+  if (!(relPath in audits)) return;
+  delete audits[relPath];
+  try { await writeStore(audits); }
+  catch (err) { logger.error({ err, relPath }, "clearDeepAudit failed"); }
 }

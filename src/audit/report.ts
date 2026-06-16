@@ -7,7 +7,8 @@ import { runHeuristics, estTokens } from "./heuristics.ts";
 import { scoreFromFlags, gradeFromFlags } from "./grade.ts";
 import { buildChecks } from "./checks.ts";
 import { loadDeepAudits } from "./deep-store.ts";
-import type { DeepAudit } from "./types.ts";
+import { loadAllUpgrades } from "./upgrade-store.ts";
+import type { DeepAudit, Upgrade } from "./types.ts";
 import type {
   AuditCode, AuditGrade, AuditReport, AuditSummary, EntryAudit,
 } from "./types.ts";
@@ -17,7 +18,9 @@ const EMPTY_GRADES: Record<AuditGrade, number> = {
   excellent: 0, solid: 0, mediocre: 0, overloaded: 0, thin: 0,
 };
 
-async function auditEntry(entry: ConfigEntry, deepMap: Record<string, DeepAudit>): Promise<EntryAudit | null> {
+async function auditEntry(
+  entry: ConfigEntry, deepMap: Record<string, DeepAudit>, upgradeMap: Record<string, Upgrade[]>,
+): Promise<EntryAudit | null> {
   try {
     const content = await Bun.file(join(configRoot(), entry.relPath)).text();
     const flags = runHeuristics(entry, content);
@@ -28,6 +31,7 @@ async function auditEntry(entry: ConfigEntry, deepMap: Record<string, DeepAudit>
       bytes: entry.bytes, estTokens: estTokens(entry.bytes),
       grade: gradeFromFlags(flags, score), score, flags,
       checks: buildChecks(entry.kind, flags),
+      upgradeCount: (upgradeMap[entry.relPath] ?? []).length,
       ...(deep ? { deep } : {}),
     };
   } catch (err) {
@@ -54,8 +58,8 @@ function summarize(entries: EntryAudit[]): AuditSummary {
 /** Diagnostic complet de la config, déterministe et gratuit (zéro token). */
 export async function auditConfig(): Promise<AuditReport> {
   const tree = await scanConfig();
-  const deepMap = await loadDeepAudits();
-  const audited = await Promise.all(tree.entries.map((e) => auditEntry(e, deepMap)));
+  const [deepMap, upgradeMap] = await Promise.all([loadDeepAudits(), loadAllUpgrades()]);
+  const audited = await Promise.all(tree.entries.map((e) => auditEntry(e, deepMap, upgradeMap)));
   const entries = audited.filter((e): e is EntryAudit => e !== null)
     .sort((a, b) => a.score - b.score);  // pires en premier (actionnable)
   return { generatedAt: Date.now(), configRoot: configRoot(), summary: summarize(entries), entries };

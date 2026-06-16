@@ -43,6 +43,26 @@ export interface EntryAudit {
   flags: AuditFlag[];       // uniquement les échecs (rétro-compat)
   checks: AuditCheck[];     // checklist complète des normes applicables (vrai/faux)
   deep?: DeepAudit;         // verdict approfondi persisté, si déjà lancé
+  upgradeCount: number;     // nombre d'upgrades opus déjà appliqués (historique)
+}
+
+/** Correction opus streamée (avant application). `after` = contenu corrigé complet. */
+export interface Correction {
+  relPath: string;
+  before: string;
+  after: string;
+  costUsd: number;
+}
+
+/** Un upgrade appliqué : analyse + correction + contenu avant/après, persisté en historique. */
+export interface Upgrade {
+  at: number;
+  verdict: AuditGrade;      // verdict de l'analyse qui a motivé l'upgrade
+  analysis: string;         // markdown de l'analyse profonde
+  before: string;           // contenu avant l'upgrade
+  after: string;            // contenu corrigé (opus) appliqué
+  costUsd: number;          // coût de la correction
+  commitHash?: string;      // commit git du write-back (réversible)
 }
 
 export interface AuditSummary {
