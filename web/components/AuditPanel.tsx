@@ -61,10 +61,30 @@ function Overlay(
 function DeepBody({ d }: { d: DeepAudit }): React.JSX.Element {
   return (
     <div className="text-[12px] leading-relaxed">
-      <div className="mb-2 flex items-center gap-2"><GradeBadge grade={d.verdict} /><span className="text-white/40">verdict approfondi</span></div>
-      {d.strengths.map((x, i) => <div key={`s${i}`} className="text-emerald-200/80">+ {x}</div>)}
-      {d.issues.map((x, i) => <div key={`i${i}`} className="text-rose-200/80">− {x}</div>)}
-      {d.rewriteHint && <div className="mt-2 text-sky-200/85">→ {d.rewriteHint}</div>}
+      <div className="mb-2 flex items-center gap-2">
+        <GradeBadge grade={d.verdict} /><span className="text-white/40">verdict approfondi</span>
+        <span className="ml-auto rounded-md border border-emerald-400/20 px-1.5 py-0.5 text-[10px] text-emerald-200/70">${d.costUsd.toFixed(4)}</span>
+      </div>
+      {d.markdown ? <Markdown content={d.markdown} /> : (
+        <>
+          {(d.strengths ?? []).map((x, i) => <div key={`s${i}`} className="text-emerald-200/80">+ {x}</div>)}
+          {(d.issues ?? []).map((x, i) => <div key={`i${i}`} className="text-rose-200/80">− {x}</div>)}
+          {d.rewriteHint && <div className="mt-2 text-sky-200/85">→ {d.rewriteHint}</div>}
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Vue live pendant le streaming : markdown partiel qui se construit token par token. */
+function StreamingBody({ text }: { text: string }): React.JSX.Element {
+  const md = text.replace(/^\s*VERDICT:\s*\w*/i, "").trim();
+  return (
+    <div className="text-[12px] leading-relaxed">
+      <div className="mb-2 flex items-center gap-2 text-white/40">
+        <Loader2 size={12} className="animate-spin" />analyse en cours (sonnet, streaming)…
+      </div>
+      {md ? <Markdown content={md} /> : <span className="text-white/30">…</span>}
     </div>
   );
 }
@@ -110,13 +130,20 @@ function EntryRow(
 ): React.JSX.Element {
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
+  const [stream, setStream] = useState<string | null>(null);
 
-  const runDeep = useCallback(async () => {
-    setBusy(true);
-    try {
-      const r = await fetch("/api/audit/deep", { method: "POST", body: JSON.stringify({ path: e.relPath }) });
-      if (r.ok) { actions.onDeep(e.relPath, (await r.json()) as DeepAudit); setOpen(true); }
-    } finally { setBusy(false); }
+  const runDeep = useCallback(() => {
+    setBusy(true); setStream(""); setOpen(true);
+    const es = new EventSource(`/api/audit/deep/stream?path=${encodeURIComponent(e.relPath)}`);
+    es.addEventListener("delta", (ev) => {
+      const { text } = JSON.parse((ev as MessageEvent).data) as { text: string };
+      setStream((prev) => (prev ?? "") + text);
+    });
+    es.addEventListener("done", (ev) => {
+      actions.onDeep(e.relPath, JSON.parse((ev as MessageEvent).data) as DeepAudit);
+      setStream(null); setBusy(false); es.close();
+    });
+    es.addEventListener("error", () => { setBusy(false); es.close(); });
   }, [e.relPath, actions]);
 
   return (
@@ -151,9 +178,11 @@ function EntryRow(
         )}
       </div>
       <AnimatePresence>
-        {deep && open && (
+        {(stream !== null || (deep && open)) && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-            <div className="mt-3 rounded-lg border border-white/[0.08] bg-black/20 p-3"><DeepBody d={deep} /></div>
+            <div className="mt-3 rounded-lg border border-white/[0.08] bg-black/20 p-3">
+              {stream !== null ? <StreamingBody text={stream} /> : deep ? <DeepBody d={deep} /> : null}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

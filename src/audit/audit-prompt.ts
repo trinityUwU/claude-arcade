@@ -14,16 +14,16 @@ export function buildDeepAuditPrompt(relPath: string, kind: ConfigKind, content:
     : ["Judge it on: instruction clarity, XML/structure, English (the norm for Anthropic models),",
        "token economy (no bloat for its role), explicit triggers, and absence of contradictions.", ""];
   return [
-    "You are a senior Claude Code prompt engineer auditing a config file against the native prompting principles below.",
-    `The file \`${relPath}\` is ${ROLE_HINT[kind]}.`,
+    "Tu es un prompt engineer Claude Code senior. Tu audites un fichier de config selon les principes natifs ci-dessous.",
+    `Le fichier \`${relPath}\` est ${ROLE_HINT[kind]}.`,
     "",
     ...rubricBlock,
-    "Respond with ONLY a JSON object, no prose:",
-    '{ "verdict": "excellent|solid|mediocre|overloaded|thin",',
-    '  "strengths": ["..."], "issues": ["..."],',
-    '  "rewriteHint": "one concrete, actionable improvement direction" }',
+    "Réponds en FRANÇAIS, format markdown. Structure EXACTE :",
+    "1. Première ligne, rien d'autre : `VERDICT: <excellent|solid|mediocre|overloaded|thin>`",
+    "2. Puis l'analyse en markdown : `## Forces`, `## Problèmes`, `## Piste de réécriture` (concrète, actionnable).",
+    "Sois dense et direct, pas de remplissage.",
     "",
-    "=== FILE CONTENT ===",
+    "=== CONTENU DU FICHIER ===",
     content.slice(0, 24_000),
   ].join("\n");
 }

@@ -3,7 +3,7 @@ import { test, expect } from "bun:test";
 import { detectEnglish } from "../src/audit/lang.ts";
 import { runHeuristics } from "../src/audit/heuristics.ts";
 import { scoreFromFlags, gradeFromFlags } from "../src/audit/grade.ts";
-import { deepAuditFile } from "../src/audit/deep.ts";
+import { deepAuditFile, parseStreamed } from "../src/audit/deep.ts";
 import { buildChecks } from "../src/audit/checks.ts";
 import type { ConfigEntry, ConfigKind } from "../src/config/types.ts";
 
@@ -84,6 +84,17 @@ test("buildChecks : un drapeau → la norme correspondante passe à ok=false ave
 });
 
 test("deepAuditFile : chemin hors scan refusé (null, zéro token)", async () => {
-  const r = await deepAuditFile("../../etc/passwd", async () => "{}");
+  const r = await deepAuditFile("../../etc/passwd");
   expect(r).toBeNull();
+});
+
+test("parseStreamed : extrait le verdict de la 1ʳᵉ ligne + markdown + coût", () => {
+  const d = parseStreamed("skills/x/SKILL.md", "VERDICT: solid\n## Forces\n- ok\n## Problèmes\n- rien", 0.0123);
+  expect(d.verdict).toBe("solid");
+  expect(d.markdown.startsWith("## Forces")).toBe(true);
+  expect(d.costUsd).toBe(0.0123);
+});
+
+test("parseStreamed : verdict inconnu → mediocre par défaut", () => {
+  expect(parseStreamed("p", "VERDICT: bizarre\ntexte", 0).verdict).toBe("mediocre");
 });

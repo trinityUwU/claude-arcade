@@ -152,12 +152,26 @@ async function configSettingsResponse(req: Request): Promise<Response> {
   return Response.json(await saveSettings(patch));
 }
 
-/** Verdict approfondi (claude -p) d'un fichier whitelisté ; 404 si chemin refusé/illisible. */
-async function auditDeepResponse(req: Request): Promise<Response> {
-  const { path } = (await req.json().catch(() => ({}))) as { path?: string };
-  if (!path) return Response.json({ error: "path requis" }, { status: 400 });
-  const result = await deepAuditFile(path);
-  return result ? Response.json(result) : new Response("not found", { status: 404 });
+/** Audit profond streamé (SSE) : events `delta` (texte live) puis `done` (verdict+coût).
+ *  Local-only (dépense de tokens). Garde whitelist déléguée à deepAuditFile. */
+function auditDeepStream(req: Request, server: Server<unknown>): Response {
+  if (!ALLOW_REMOTE_WRITES && !isLocalRequest(server, req)) return new Response("local only", { status: 403 });
+  const path = new URL(req.url).searchParams.get("path");
+  if (!path) return new Response("missing path", { status: 400 });
+  const stream = new ReadableStream<Uint8Array>({
+    async start(c) {
+      const send = (event: string, data: unknown): void => {
+        c.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+      };
+      try {
+        const result = await deepAuditFile(path, (text) => send("delta", { text }));
+        send(result ? "done" : "error", result ?? { error: "not found" });
+      } catch (err) {
+        send("error", { error: String(err) });
+      } finally { c.close(); }
+    },
+  });
+  return new Response(stream, { headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache" } });
 }
 
 /** Vrai si la requête vient de la machine locale (loopback). */
@@ -301,7 +315,7 @@ const server = Bun.serve({
       POST: async (req, server) => denyRemoteWrite(server, req) ?? configSettingsResponse(req),
     },
     "/api/audit": async () => Response.json(await auditConfig()),
-    "/api/audit/deep": { POST: async (req, server) => denyRemoteWrite(server, req) ?? auditDeepResponse(req) },
+    "/api/audit/deep/stream": (req, server) => auditDeepStream(req, server),
   },
   error(err) {
     logger.error({ err }, "erreur serveur");

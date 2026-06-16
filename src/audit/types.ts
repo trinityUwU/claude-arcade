@@ -59,11 +59,14 @@ export interface AuditReport {
   entries: EntryAudit[];
 }
 
-/** Verdict approfondi d'un fichier via claude -p (action explicite, dépense de tokens). */
+/** Verdict approfondi d'un fichier via claude -p en streaming (action explicite, dépense de tokens). */
 export interface DeepAudit {
   relPath: string;
   verdict: AuditGrade;
-  strengths: string[];
-  issues: string[];
-  rewriteHint: string;      // piste de réécriture actionnable
+  markdown: string;         // analyse prose streamée (markdown)
+  costUsd: number;          // coût réel de l'analyse (total_cost_usd)
+  // Champs hérités des audits persistés avant le streaming (rétro-compat affichage) :
+  strengths?: string[];
+  issues?: string[];
+  rewriteHint?: string;
 }
