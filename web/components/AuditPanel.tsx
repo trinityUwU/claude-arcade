@@ -41,7 +41,7 @@ function DeepBody({ d }: { d: DeepAudit }): React.JSX.Element {
     <div className="text-[12px] leading-relaxed">
       <div className="mb-2 flex items-center gap-2">
         <GradeBadge grade={d.verdict} /><span className="text-white/40">verdict approfondi (sonnet)</span>
-        <span className="ml-auto rounded-md border border-emerald-400/20 px-1.5 py-0.5 text-[10px] text-emerald-200/70">${d.costUsd.toFixed(4)}</span>
+        {d.costUsd != null && <span className="ml-auto rounded-md border border-emerald-400/20 px-1.5 py-0.5 text-[10px] text-emerald-200/70">${d.costUsd.toFixed(4)}</span>}
       </div>
       {d.markdown ? <Markdown content={d.markdown} /> : (
         <>
@@ -93,7 +93,7 @@ function CorrectionReview(
       <div className="mb-2 flex items-center gap-2">
         <Wand2 size={13} className="text-fuchsia-200" /><span className="text-white/55">correction opus prête</span>
         <span className="text-white/30">{c.before.length} → {c.after.length} c.</span>
-        <span className="ml-auto rounded-md border border-fuchsia-400/20 px-1.5 py-0.5 text-[10px] text-fuchsia-200/70">${c.costUsd.toFixed(4)}</span>
+        <span className="ml-auto rounded-md border border-fuchsia-400/20 px-1.5 py-0.5 text-[10px] text-fuchsia-200/70">${(c.costUsd ?? 0).toFixed(4)}</span>
       </div>
       <pre className="mb-2 max-h-[40vh] overflow-y-auto whitespace-pre-wrap break-words rounded-lg bg-black/20 p-2 font-mono text-[12px] text-white/75">{c.after}</pre>
       <div className="flex items-center gap-2">

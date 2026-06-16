@@ -61,7 +61,7 @@ export function UpgradeHistory({ relPath, onClose }: { relPath: string; onClose:
                   <History size={13} className="text-emerald-200/70" />
                   <span className="font-semibold text-white/80">upgrade #{list.length - i}</span>
                   <span className="text-white/35">{fmtDate(u.at)}</span>
-                  <span className="ml-auto rounded-md border border-emerald-400/20 px-1.5 py-0.5 text-[10px] text-emerald-200/70">${u.costUsd.toFixed(4)}</span>
+                  <span className="ml-auto rounded-md border border-emerald-400/20 px-1.5 py-0.5 text-[10px] text-emerald-200/70">${(u.costUsd ?? 0).toFixed(4)}</span>
                   {u.commitHash && <span className="font-mono text-[10px] text-white/30">{u.commitHash}</span>}
                 </div>
                 <UpgradeView u={u} isMd={isMd} />
