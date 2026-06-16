@@ -26,12 +26,16 @@ async function auditEntry(
     const flags = runHeuristics(entry, content);
     const score = scoreFromFlags(flags);
     const deep = deepMap[entry.relPath];
+    const upgrades = upgradeMap[entry.relPath] ?? [];
+    // Drift : déjà upgradé mais le disque diffère du dernier `after` → modifié hors Arcade.
+    const drifted = upgrades.length > 0 && upgrades[0]!.after !== content;
     return {
       relPath: entry.relPath, kind: entry.kind, name: entry.name,
       bytes: entry.bytes, estTokens: estTokens(entry.bytes),
       grade: gradeFromFlags(flags, score), score, flags,
       checks: buildChecks(entry.kind, flags),
-      upgradeCount: (upgradeMap[entry.relPath] ?? []).length,
+      upgradeCount: upgrades.length,
+      ...(drifted ? { drifted } : {}),
       ...(deep ? { deep } : {}),
     };
   } catch (err) {

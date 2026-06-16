@@ -6,12 +6,12 @@ import { configRoot } from "../config/paths.ts";
 import { snapshotConfig } from "../config/backup.ts";
 import { commitPaths } from "../config/git.ts";
 import { loadDeepAudits, clearDeepAudit } from "./deep-store.ts";
-import { recordUpgrade } from "./upgrade-store.ts";
+import { recordUpgrade, loadUpgrades } from "./upgrade-store.ts";
 import { loadPromptRubric } from "./pe-rubric.ts";
 import { buildCorrectPrompt, CORRECTION_START, CORRECTION_END } from "./correct-prompt.ts";
 import { streamClaude, type StreamRunner } from "./stream-claude.ts";
 import { logger } from "../logger.ts";
-import type { Correction, DeepAudit } from "./types.ts";
+import type { Correction, DeepAudit, Upgrade } from "./types.ts";
 
 /** Reconstruit une analyse markdown à partir d'un audit profond au format legacy
  *  (strengths/issues/rewriteHint sans champ markdown), pour rester corrigible. */
@@ -89,6 +89,62 @@ export async function applyUpgrade(
     return { ok: true, commitHash };
   } catch (err) {
     logger.error({ err, relPath }, "applyUpgrade failed");
+    return { ok: false };
+  }
+}
+
+/**
+ * Historique d'un fichier + détection de drift externe : si le contenu disque diffère du
+ * dernier `after` enregistré, on préfixe une entrée synthétique `external` (modifié hors Arcade)
+ * dont before=dernier after, after=contenu disque actuel → diff visible + restaurable.
+ */
+export async function historyWithDrift(relPath: string): Promise<Upgrade[]> {
+  const list = await loadUpgrades(relPath);
+  if (!list.length) return list;
+  try {
+    const tree = await scanConfig();
+    if (!tree.entries.some((e) => e.relPath === relPath)) return list;
+    const current = await Bun.file(join(configRoot(), relPath)).text();
+    const last = list[0]!;
+    if (last.after === current) return list;  // pas de drift
+    const file = Bun.file(join(configRoot(), relPath));
+    const drift: Upgrade = {
+      at: file.lastModified || Date.now(), verdict: "mediocre", external: true,
+      analysis: "(modification détectée hors Claude Arcade depuis le dernier upgrade)",
+      before: last.after, after: current, costUsd: 0,
+    };
+    return [drift, ...list];
+  } catch (err) {
+    logger.error({ err, relPath }, "historyWithDrift failed");
+    return list;
+  }
+}
+
+/**
+ * Restaure un contenu issu de l'historique (un `before`/`after` d'upgrade) comme NOUVEL état :
+ * snapshot + écriture + commit dédié + reset analyse. Réversible, sans conflit git.
+ */
+export async function restoreContent(
+  relPath: string, content: string,
+): Promise<{ ok: boolean; commitHash?: string }> {
+  try {
+    const tree = await scanConfig();
+    if (!tree.entries.some((e) => e.relPath === relPath) || !content.trim()) return { ok: false };
+    const before = await Bun.file(join(configRoot(), relPath)).text();
+    if (before === content) return { ok: true };  // déjà cet état, rien à faire
+
+    await snapshotConfig(`before-restore-${relPath.replace(/[^a-z0-9]+/gi, "-").slice(0, 40)}`);
+    await Bun.write(join(configRoot(), relPath), content);
+    const commitHash = (await commitPaths([relPath], `[ARCADE] restore ${relPath}`)) ?? undefined;
+
+    await recordUpgrade(relPath, {
+      at: Date.now(), verdict: "mediocre", analysis: "(restauration d'un état d'historique)",
+      before, after: content, costUsd: 0, commitHash,
+    });
+    await clearDeepAudit(relPath);
+    return { ok: true, commitHash };
+  } catch (err) {
+    logger.error({ err, relPath }, "restoreContent failed");
     return { ok: false };
   }
 }

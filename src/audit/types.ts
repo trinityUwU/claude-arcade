@@ -44,6 +44,7 @@ export interface EntryAudit {
   checks: AuditCheck[];     // checklist complète des normes applicables (vrai/faux)
   deep?: DeepAudit;         // verdict approfondi persisté, si déjà lancé
   upgradeCount: number;     // nombre d'upgrades opus déjà appliqués (historique)
+  drifted?: boolean;        // déjà upgradé, mais modifié hors Arcade depuis le dernier upgrade
 }
 
 /** Correction opus streamée (avant application). `after` = contenu corrigé complet. */
@@ -63,6 +64,7 @@ export interface Upgrade {
   after: string;            // contenu corrigé (opus) appliqué
   costUsd: number;          // coût de la correction
   commitHash?: string;      // commit git du write-back (réversible)
+  external?: boolean;       // entrée synthétique : modification détectée hors Arcade (drift)
 }
 
 export interface AuditSummary {

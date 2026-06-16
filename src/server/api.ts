@@ -26,8 +26,7 @@ import { revertCommit } from "../config/git.ts";
 import { configRoot } from "../config/paths.ts";
 import { auditConfig } from "../audit/report.ts";
 import { deepAuditFile } from "../audit/deep.ts";
-import { correctFile, applyUpgrade } from "../audit/upgrade.ts";
-import { loadUpgrades } from "../audit/upgrade-store.ts";
+import { correctFile, applyUpgrade, restoreContent, historyWithDrift } from "../audit/upgrade.ts";
 import type { CoverageReport, ConfigEntry, AutoSettings, Proposal } from "../config/types.ts";
 import { logger } from "../logger.ts";
 import type { ScanResult } from "../types.ts";
@@ -203,6 +202,13 @@ async function upgradeResponse(req: Request): Promise<Response> {
   return Response.json(await applyUpgrade(path, after, costUsd ?? 0));
 }
 
+/** Restaure un état d'historique (before/after d'un upgrade) comme nouveau commit. Local-only. */
+async function restoreResponse(req: Request): Promise<Response> {
+  const { path, content } = (await req.json().catch(() => ({}))) as { path?: string; content?: string };
+  if (!path || !content) return Response.json({ error: "path et content requis" }, { status: 400 });
+  return Response.json(await restoreContent(path, content));
+}
+
 /** Vrai si la requête vient de la machine locale (loopback). */
 function isLocalRequest(server: Server<unknown>, req: Request): boolean {
   const ip = server.requestIP(req)?.address ?? "";
@@ -347,7 +353,8 @@ const server = Bun.serve({
     "/api/audit/deep/stream": (req, server) => claudeSSE(req, server, (p, onText, signal) => deepAuditFile(p, onText, signal)),
     "/api/audit/correct/stream": (req, server) => claudeSSE(req, server, (p, onText, signal) => correctFile(p, onText, signal)),
     "/api/audit/upgrade": { POST: async (req, server) => denyRemoteWrite(server, req) ?? upgradeResponse(req) },
-    "/api/audit/upgrades": async (req) => Response.json(await loadUpgrades(new URL(req.url).searchParams.get("path") ?? "")),
+    "/api/audit/restore": { POST: async (req, server) => denyRemoteWrite(server, req) ?? restoreResponse(req) },
+    "/api/audit/upgrades": async (req) => Response.json(await historyWithDrift(new URL(req.url).searchParams.get("path") ?? "")),
   },
   error(err) {
     logger.error({ err }, "erreur serveur");

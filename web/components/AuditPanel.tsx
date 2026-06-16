@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Stethoscope, Loader2, Maximize2, ChevronDown, Eye, Code2, FileText, Wand2, ArrowUpCircle, X, History, RotateCw } from "lucide-react";
+import { Stethoscope, Loader2, Maximize2, ChevronDown, Eye, Code2, FileText, Wand2, ArrowUpCircle, X, History, RotateCw, AlertTriangle } from "lucide-react";
 import type { AuditReport, EntryAudit, AuditGrade, AuditCheck, DeepAudit, Correction } from "../../src/audit/types.ts";
 import { useLiveResource } from "../lib/live.tsx";
 import { useClaudeStream } from "../lib/useClaudeStream.ts";
@@ -174,6 +174,12 @@ function EntryRow(
           <span className="shrink-0 text-[11px] text-white/30">~{e.estTokens} tok</span>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          {e.drifted && (
+            <button onClick={() => actions.onHistory(e.relPath)} title="Modifié hors Arcade depuis le dernier upgrade — voir le diff"
+              className="flex items-center gap-1 rounded-md border border-amber-400/40 bg-amber-400/[0.08] px-1.5 py-0.5 text-[10px] text-amber-200 hover:bg-amber-400/[0.14]">
+              <AlertTriangle size={10} />modifié hors Arcade
+            </button>
+          )}
           {e.upgradeCount > 0 && <span className="rounded-md border border-emerald-400/20 px-1.5 py-0.5 text-[10px] text-emerald-200/60">↑{e.upgradeCount}</span>}
           <span className="text-[11px] tabular-nums text-white/40">{e.score}/100</span>
           <GradeBadge grade={e.grade} />
@@ -321,7 +327,9 @@ export function AuditPanel(): React.JSX.Element {
       {modal?.kind === "deep" && deepMap.has(modal.relPath) && (
         <Overlay title={modal.relPath} onClose={() => setModal(null)}><DeepBody d={deepMap.get(modal.relPath)!} /></Overlay>
       )}
-      {modal?.kind === "upgrades" && <UpgradeHistory relPath={modal.relPath} onClose={() => setModal(null)} />}
+      {modal?.kind === "upgrades" && (
+        <UpgradeHistory relPath={modal.relPath} onClose={() => setModal(null)} onRestored={() => onUpgraded(modal.relPath)} />
+      )}
     </div>
   );
 }
