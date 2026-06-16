@@ -170,9 +170,10 @@ function claudeSSE<T>(
       };
       try {
         const result = await run(path, (text) => send("delta", { text }));
-        send(result ? "done" : "error", result ?? { error: "not found" });
+        if (result) send("done", result);
+        else send("failed", { error: "analyse introuvable ou vide" });
       } catch (err) {
-        send("error", { error: String(err) });
+        send("failed", { error: String(err) });
       } finally { c.close(); }
     },
   });

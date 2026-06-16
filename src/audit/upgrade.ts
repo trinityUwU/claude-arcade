@@ -11,7 +11,18 @@ import { loadPromptRubric } from "./pe-rubric.ts";
 import { buildCorrectPrompt, CORRECTION_START, CORRECTION_END } from "./correct-prompt.ts";
 import { streamClaude, type StreamRunner } from "./stream-claude.ts";
 import { logger } from "../logger.ts";
-import type { Correction } from "./types.ts";
+import type { Correction, DeepAudit } from "./types.ts";
+
+/** Reconstruit une analyse markdown à partir d'un audit profond au format legacy
+ *  (strengths/issues/rewriteHint sans champ markdown), pour rester corrigible. */
+function legacyAnalysis(deep?: DeepAudit): string {
+  if (!deep) return "";
+  const parts: string[] = [];
+  if (deep.strengths?.length) parts.push("## Forces\n" + deep.strengths.map((s) => `- ${s}`).join("\n"));
+  if (deep.issues?.length) parts.push("## Problèmes\n" + deep.issues.map((s) => `- ${s}`).join("\n"));
+  if (deep.rewriteHint) parts.push("## Piste de réécriture\n" + deep.rewriteHint);
+  return parts.join("\n\n");
+}
 
 /** Extrait le contenu entre sentinelles (ignore le préambule conversationnel d'opus).
  *  Fallback : retire un éventuel enrobage ```…``` si les sentinelles sont absentes. */
@@ -38,10 +49,11 @@ export async function correctFile(
     const entry = tree.entries.find((e) => e.relPath === relPath);
     if (!entry) return null;  // garde whitelist
     const deep = (await loadDeepAudits())[relPath];
-    if (!deep?.markdown) return null;  // pas d'analyse → rien à corriger
+    const analysis = deep?.markdown?.trim() ? deep.markdown : legacyAnalysis(deep);
+    if (!analysis) return null;  // pas d'analyse du tout → rien à corriger
     const before = await Bun.file(join(configRoot(), relPath)).text();
     const rubric = await loadPromptRubric();
-    const prompt = buildCorrectPrompt(relPath, entry.kind, before, deep.markdown, rubric);
+    const prompt = buildCorrectPrompt(relPath, entry.kind, before, analysis, rubric);
     const { text, costUsd } = await runner(prompt, onText, "opus");  // OPUS, jamais sonnet ici
     return { relPath, before, after: unwrap(text), costUsd };
   } catch (err) {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Stethoscope, Loader2, Maximize2, ChevronDown, Eye, Code2, FileText, Wand2, ArrowUpCircle, X, History } from "lucide-react";
+import { Stethoscope, Loader2, Maximize2, ChevronDown, Eye, Code2, FileText, Wand2, ArrowUpCircle, X, History, RotateCw } from "lucide-react";
 import type { AuditReport, EntryAudit, AuditGrade, AuditCheck, DeepAudit, Correction } from "../../src/audit/types.ts";
 import { useLiveResource } from "../lib/live.tsx";
 import { useClaudeStream } from "../lib/useClaudeStream.ts";
@@ -163,7 +163,8 @@ function EntryRow(
     } finally { setApplying(false); }
   }, [correction, e.relPath, actions]);
 
-  const expandOpen = analysis.running || correct.running || correction !== null || (deep && open);
+  const streamError = correct.error ?? analysis.error;
+  const expandOpen = analysis.running || correct.running || correction !== null || streamError !== null || (deep && open);
   return (
     <motion.div {...reveal(silent, rank)} {...cardHover} layout
       className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3 transition-colors hover:border-white/[0.14] hover:bg-white/[0.035]">
@@ -192,6 +193,9 @@ function EntryRow(
               <ChevronDown size={12} className={`transition-transform ${open ? "rotate-180" : ""}`} />{open ? "Replier" : "Dérouler"}
             </button>
             <button onClick={() => actions.onFullscreen(e.relPath)} className={BTN}><Maximize2 size={12} />Plein écran</button>
+            <button onClick={runDeep} disabled={analysis.running} className={BTN}>
+              {analysis.running ? <Loader2 size={12} className="animate-spin" /> : <RotateCw size={12} />}Réanalyser
+            </button>
             {!correction && (
               <button onClick={runCorrect} disabled={correct.running}
                 className="flex items-center gap-1.5 rounded-md border border-fuchsia-400/30 bg-fuchsia-400/[0.06] px-2 py-1 text-[11px] text-fuchsia-200 hover:bg-fuchsia-400/[0.12] disabled:opacity-50">
@@ -212,6 +216,7 @@ function EntryRow(
               {analysis.running ? <AnalysisStreaming text={analysis.text ?? ""} elapsed={analysis.elapsed} />
                 : correct.running ? <CorrectionStreaming text={correct.text ?? ""} elapsed={correct.elapsed} />
                 : correction ? <CorrectionReview c={correction} applying={applying} onApply={apply} onCancel={() => setCorrection(null)} />
+                : streamError ? <div className="flex items-center gap-2 text-[12px] text-rose-200/85"><X size={13} />Échec : {streamError}</div>
                 : deep ? <DeepBody d={deep} /> : null}
             </div>
           </motion.div>
